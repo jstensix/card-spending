@@ -19,7 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jstensix.cardspending.R
 import com.jstensix.cardspending.ui.IssuerLogo
+import com.jstensix.cardspending.ui.components.IconTile
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.CreamBanner
 import com.jstensix.cardspending.ui.components.MonthSwitcher
@@ -67,21 +69,23 @@ fun MainScreen(
                 )
             }
             if (!state.listenerEnabled) {
-                item { CreamBanner("알림 접근 권한이 꺼져 있어요. 결제 알림을 읽을 수 없어요.", onClick = onOpenSetup) }
+                item { CreamBanner("알림 접근 권한이 꺼져 있어요. 결제 알림을 읽을 수 없어요.", icon = R.drawable.ic_warning, onClick = onOpenSetup) }
             }
             if (state.unparsedCount > 0) {
-                item { CreamBanner("읽지 못한 카드 알림 ${state.unparsedCount}건", onClick = onOpenUnparsed) }
+                item { CreamBanner("읽지 못한 카드 알림 ${state.unparsedCount}건", icon = R.drawable.ic_tab_bell_on, onClick = onOpenUnparsed) }
             }
             if (state.unregisteredCount > 0) {
-                item { CreamBanner("등록되지 않은 카드의 결제 ${state.unregisteredCount}건", onClick = onOpenCards) }
+                item { CreamBanner("등록되지 않은 카드의 결제 ${state.unregisteredCount}건", icon = R.drawable.ic_tab_card_on, onClick = onOpenCards) }
             }
-            state.backupWarning?.let { warning -> item { CreamBanner(warning, onClick = onOpenSettings) } }
+            state.backupWarning?.let { warning -> item { CreamBanner(warning, icon = R.drawable.ic_warning, onClick = onOpenSettings) } }
             if (state.rows.isEmpty()) {
                 item {
                     Column(
                         Modifier.fillMaxWidth().padding(vertical = 32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
+                        IconTile(R.drawable.ic_card_add)
+                        Spacer(Modifier.height(16.dp))
                         Text("등록된 카드가 없어요", style = BrandText.body, color = Brand.InkMute)
                         Spacer(Modifier.height(16.dp))
                         PillButton("카드 등록", onClick = onOpenCards)

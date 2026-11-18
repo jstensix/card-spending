@@ -16,7 +16,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Alignment
+import com.jstensix.cardspending.R
 import com.jstensix.cardspending.model.UnparsedNotification
+import com.jstensix.cardspending.ui.components.IconTile
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.PillButton
 import com.jstensix.cardspending.ui.components.PillStyle
@@ -47,7 +51,13 @@ fun UnparsedScreen(
                 Text("카드 결제처럼 보이지만 읽지 못한 알림이에요", style = BrandText.caption, color = Brand.InkMute)
             }
             if (items.isEmpty()) {
-                item { Text("읽지 못한 알림이 없어요", style = BrandText.body, color = Brand.InkMute, modifier = Modifier.padding(vertical = 24.dp)) }
+                item {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconTile(R.drawable.ic_check_circle)
+                        Spacer(Modifier.height(16.dp))
+                        Text("읽지 못한 알림이 없어요", style = BrandText.body, color = Brand.InkMute)
+                    }
+                }
             }
             items(items, key = { it.id }) { item ->
                 WhiteCard {

@@ -32,7 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.width
+import com.jstensix.cardspending.R
 import com.jstensix.cardspending.backup.ConnectStep
+import com.jstensix.cardspending.ui.components.IconTile
 import com.jstensix.cardspending.backup.DriveAuth
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.PillButton
@@ -130,6 +133,8 @@ fun SettingsScreen(state: SettingsState, vm: SettingsViewModel, driveAuth: Drive
                 SectionLabel("알림 읽기")
                 WhiteCard(onClick = onOpenSetup) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconTile(R.drawable.ic_lock, size = 44.dp)
+                        Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text("권한 안내", style = BrandText.body, color = Brand.Ink)
                             Text("알림 접근, 배터리 최적화, 카카오톡 설정", style = BrandText.caption, color = Brand.InkMute)

@@ -1,8 +1,11 @@
 package com.jstensix.cardspending.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,7 +39,12 @@ fun StatusTag(text: String, kind: TagKind, modifier: Modifier = Modifier) {
 
 /** card-cream-band used for notices. Tappable when [onClick] is given (shows a chevron). */
 @Composable
-fun CreamBanner(text: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+fun CreamBanner(
+    text: String,
+    modifier: Modifier = Modifier,
+    @DrawableRes icon: Int? = null,
+    onClick: (() -> Unit)? = null,
+) {
     val shape = RoundedCornerShape(8.dp)
     Row(
         modifier = modifier
@@ -47,6 +55,10 @@ fun CreamBanner(text: String, modifier: Modifier = Modifier, onClick: (() -> Uni
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (icon != null) {
+            BrandIcon(icon, 20.dp)
+            Spacer(Modifier.width(10.dp))
+        }
         Text(text, style = BrandText.label, color = Brand.Ink, modifier = Modifier.weight(1f))
         if (onClick != null) Text("›", style = BrandText.title, color = Brand.Lemon)
     }

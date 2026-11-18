@@ -1,16 +1,14 @@
 package com.jstensix.cardspending.ui
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.MailOutline
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
@@ -74,14 +73,25 @@ import kotlinx.serialization.Serializable
 @Serializable object SetupRoute
 @Serializable object SettingsRoute
 
-private data class Tab(val route: Any, val label: String, val icon: @Composable () -> Unit)
+/** Tab icons come from the user's icon sheet: full gradient when selected, grey otherwise (drawn untinted). */
+private data class Tab(val route: Any, val label: String, @DrawableRes val on: Int, @DrawableRes val off: Int)
 
 private val TABS = listOf(
-    Tab(MainRoute, "홈") { Icon(Icons.Outlined.Home, contentDescription = null) },
-    Tab(CardsRoute, "카드") { Icon(painterResource(R.drawable.ic_card), contentDescription = null) },
-    Tab(UnparsedRoute, "알림함") { Icon(Icons.Outlined.MailOutline, contentDescription = null) },
-    Tab(SettingsRoute, "설정") { Icon(Icons.Outlined.Settings, contentDescription = null) },
+    Tab(MainRoute, "홈", R.drawable.ic_tab_home_on, R.drawable.ic_tab_home_off),
+    Tab(CardsRoute, "카드", R.drawable.ic_tab_card_on, R.drawable.ic_tab_card_off),
+    Tab(UnparsedRoute, "알림함", R.drawable.ic_tab_bell_on, R.drawable.ic_tab_bell_off),
+    Tab(SettingsRoute, "설정", R.drawable.ic_tab_settings_on, R.drawable.ic_tab_settings_off),
 )
+
+@Composable
+private fun TabIcon(tab: Tab, selected: Boolean) {
+    Icon(
+        painterResource(if (selected) tab.on else tab.off),
+        contentDescription = null,
+        tint = Color.Unspecified,
+        modifier = Modifier.size(26.dp),
+    )
+}
 
 private fun NavDestination?.isTab(tab: Tab): Boolean = this?.hasRoute(tab.route::class) == true
 
@@ -103,21 +113,22 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container
                     HorizontalDivider(color = Brand.Hairline)
                     NavigationBar(containerColor = Brand.Canvas, tonalElevation = 0.dp) {
                         TABS.forEach { tab ->
+                            val selected = destination.isTab(tab)
                             NavigationBarItem(
-                                selected = destination.isTab(tab),
+                                selected = selected,
                                 onClick = { nav.navigateToTab(tab.route) },
                                 icon = {
                                     if (tab.route == UnparsedRoute && unparsedCount > 0) {
-                                        BadgedBox(badge = { Badge(containerColor = Brand.Ruby) { Text("$unparsedCount") } }) { tab.icon() }
+                                        BadgedBox(badge = { Badge(containerColor = Brand.Ruby) { Text("$unparsedCount") } }) { TabIcon(tab, selected) }
                                     } else {
-                                        tab.icon()
+                                        TabIcon(tab, selected)
                                     }
                                 },
                                 label = { Text(tab.label, style = BrandText.eyebrow) },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Brand.PrimaryDeep,
                                     selectedTextColor = Brand.PrimaryDeep,
-                                    indicatorColor = Brand.Subdued,
+                                    indicatorColor = Brand.PrimaryTint,
                                     unselectedIconColor = Brand.InkMute,
                                     unselectedTextColor = Brand.InkMute,
                                 ),

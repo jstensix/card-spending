@@ -23,14 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -55,6 +52,8 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jstensix.cardspending.R
+import com.jstensix.cardspending.ui.components.BrandIcon
 import com.jstensix.cardspending.ui.components.BrandTextField
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.CreamBanner
@@ -173,7 +172,7 @@ fun ManualEntryScreen(
                     dayLabel(state.date),
                     selected = false,
                     onClick = { showDate = true },
-                    leading = { Icon(Icons.Outlined.DateRange, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    leading = { BrandIcon(R.drawable.ic_calendar, 18.dp) },
                 )
                 PillChip(state.time.format(TIME), selected = false, onClick = { showTime = true })
             }

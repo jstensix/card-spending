@@ -21,7 +21,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.model.Card
 import com.jstensix.cardspending.rules.maskOf
+import androidx.compose.foundation.layout.height
+import com.jstensix.cardspending.R
 import com.jstensix.cardspending.ui.IssuerLogo
+import com.jstensix.cardspending.ui.components.IconTile
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.PillButton
 import com.jstensix.cardspending.ui.components.WhiteCard
@@ -39,7 +42,13 @@ fun CardListScreen(cards: List<Card>, onEdit: (Long) -> Unit, onAdd: () -> Unit)
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (cards.isEmpty()) {
-                item { Text("아직 등록한 카드가 없어요", style = BrandText.body, color = Brand.InkMute, modifier = Modifier.padding(vertical = 24.dp)) }
+                item {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconTile(R.drawable.ic_card_add)
+                        Spacer(Modifier.height(16.dp))
+                        Text("아직 등록한 카드가 없어요", style = BrandText.body, color = Brand.InkMute)
+                    }
+                }
             }
             items(cards, key = { it.id }) { card ->
                 WhiteCard(onClick = { onEdit(card.id) }) {

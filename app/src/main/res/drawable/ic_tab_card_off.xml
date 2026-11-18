@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 카드 탭 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:pathData="M5,5 H19 A3,3 0 0 1 22,8 V16 A3,3 0 0 1 19,19 H5 A3,3 0 0 1 2,16 V8 A3,3 0 0 1 5,5 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="3" android:startY="2" android:endX="21" android:endY="22">
+                <item android:offset="0" android:color="#FFC3CAD6" />
+                <item android:offset="1" android:color="#FF97A2B4" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#55FFFFFF" android:pathData="M2,8.6 H22 V11 H2 Z" />
+    <path android:fillColor="#99FFFFFF" android:pathData="M5.4,14.2 H8.6 A0.8,0.8 0 0 1 9.4,15 V15 A0.8,0.8 0 0 1 8.6,15.8 H5.4 A0.8,0.8 0 0 1 4.6,15 V15 A0.8,0.8 0 0 1 5.4,14.2 Z" />
+    <path android:fillColor="#99FFFFFF" android:pathData="M16.4,13.8 H18.2 A1.2,1.2 0 0 1 19.4,15 V15 A1.2,1.2 0 0 1 18.2,16.2 H16.4 A1.2,1.2 0 0 1 15.2,15 V15 A1.2,1.2 0 0 1 16.4,13.8 Z" />
+</vector>
