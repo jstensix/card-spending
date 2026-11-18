@@ -3,9 +3,11 @@ package com.jstensix.cardspending.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.jstensix.cardspending.model.Issuer
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
+import com.jstensix.cardspending.model.TxSource
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.Flow
 
@@ -32,6 +34,22 @@ interface TransactionDao {
             "AND amount = :amount AND kind = :kind AND approvedAt = :approvedAt",
     )
     suspend fun findSameKey(issuer: Issuer, mask: String, amount: Long, kind: TxKind, approvedAt: LocalDateTime): List<Transaction>
+
+    @Query(
+        "SELECT * FROM transactions WHERE deleted = 0 AND source = :source AND issuer = :issuer AND mask = :mask " +
+            "AND amount = :amount AND kind = :kind AND approvedAt >= :start AND approvedAt < :end",
+    )
+    suspend fun findInRange(
+        source: TxSource,
+        issuer: Issuer,
+        mask: String,
+        amount: Long,
+        kind: TxKind,
+        start: LocalDateTime,
+        end: LocalDateTime,
+    ): List<Transaction>
+
+    @Update suspend fun update(tx: Transaction)
 
     @Query("SELECT DISTINCT sourcePackage FROM transactions WHERE sourcePackage IS NOT NULL")
     suspend fun sourcePackages(): List<String>

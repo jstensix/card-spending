@@ -8,6 +8,7 @@ import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
 import com.jstensix.cardspending.model.UnparsedNotification
 import com.jstensix.cardspending.rules.monthBounds
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
 import kotlinx.coroutines.flow.Flow
@@ -70,6 +71,16 @@ class SpendingRepository(private val db: AppDatabase, private val onChanged: () 
         txDao.findSameKey(issuer, mask, amount, kind, approvedAt)
 
     suspend fun insertNotificationTx(tx: Transaction): Long = txDao.insert(tx).also { onChanged() }
+
+    /** Live rows of [source] on the same card, amount and kind during [day]. */
+    suspend fun findSameDay(source: TxSource, issuer: Issuer, mask: String, amount: Long, kind: TxKind, day: LocalDate): List<Transaction> =
+        txDao.findInRange(source, issuer, mask, amount, kind, day.atStartOfDay(), day.plusDays(1).atStartOfDay())
+
+    /** Replaces a hand-entered row with the real notification data, keeping its id so cancels linked to it stay linked. */
+    suspend fun upgradeManual(tx: Transaction) {
+        txDao.update(tx)
+        onChanged()
+    }
 
     suspend fun knownSourcePackages(): Set<String> = txDao.sourcePackages().toSet()
 

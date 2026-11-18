@@ -4,7 +4,10 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.jstensix.cardspending.data.AppDatabase
 import com.jstensix.cardspending.data.SpendingRepository
+import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
+import com.jstensix.cardspending.model.TxSource
 import com.jstensix.cardspending.model.UnparsedNotification
 import com.jstensix.cardspending.parsing.HANA_BODY
 import com.jstensix.cardspending.parsing.HANA_TITLE
@@ -90,6 +93,27 @@ class IngestorTest {
         assertEquals(IngestResult.IGNORED, ingestor.ingest(NotificationMessage("com.kakao.talk", "엄마", "저녁 먹었어?", posted)))
         assertTrue(repo.snapshot().second.isEmpty())
         assertTrue(repo.snapshot().third.isEmpty())
+    }
+
+    private fun manualLotte(approvedAt: LocalDateTime) = Transaction(
+        issuer = Issuer.LOTTE, kind = TxKind.APPROVAL, amount = 11000, merchant = "세븐일레븐", mask = "7*1*",
+        installment = false, approvedAt = approvedAt, source = TxSource.MANUAL, manualRecognition = false, createdAt = posted,
+    )
+
+    @Test fun manualEntrySameDay_upgradedByNotification() = runTest {
+        val manualId = repo.addManual(manualLotte(LocalDateTime.of(2026, 11, 18, 9, 0)))
+        assertEquals(IngestResult.MERGED, ingestor.ingest(lotte()))
+        val tx = monthTxs().single()
+        assertEquals(manualId, tx.id)
+        assertEquals(TxSource.NOTIFICATION, tx.source)
+        assertEquals(LocalDateTime.of(2026, 11, 18, 11, 43), tx.approvedAt)
+        assertEquals(false, tx.manualRecognition)
+    }
+
+    @Test fun manualEntryOtherDay_notMerged() = runTest {
+        repo.addManual(manualLotte(LocalDateTime.of(2026, 11, 17, 9, 0)))
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(lotte()))
+        assertEquals(2, monthTxs().size)
     }
 
     @Test fun kakaoChatAfterLottePayment_notStored() = runTest {

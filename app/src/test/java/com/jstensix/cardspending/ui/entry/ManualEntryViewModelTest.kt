@@ -111,6 +111,14 @@ class ManualEntryViewModelTest {
         assertTrue(runBlocking { repo.observeUnparsed().first() }.isEmpty())
     }
 
+    @Test fun sameDayPaymentExists_warns() {
+        runBlocking { repo.insertNotificationTx(notificationTx(9900, "거궁찬판교점", LocalDateTime.of(2026, 11, 18, 17, 29))) }
+        val viewModel = vm()
+        viewModel.setAmount("9900")
+        val state = viewModel.state.await { it.duplicateWarning != null }
+        assertTrue(state.duplicateWarning!!.contains("거궁찬판교점"))
+    }
+
     @Test fun invalidInput_cannotSave() {
         val viewModel = vm()
         viewModel.setAmount("0")

@@ -33,6 +33,8 @@ data class EntryState(
     val originalCandidates: List<Transaction> = emptyList(),
     val originalId: Long? = null,
     val rawText: String? = null,
+    /** A same-day payment of the same amount already exists on this card (e.g. it also arrived as a notification). */
+    val duplicateWarning: String? = null,
     val canSave: Boolean = false,
 )
 
@@ -59,8 +61,18 @@ class ManualEntryViewModel(
             } else {
                 emptyList()
             }
+            // The same payment may already be here from a notification (e.g. app push parsed, KakaoTalk copy unrecognized).
+            val sameDay = if (card != null && amount != null) {
+                val kind = if (f.cancel) TxKind.CANCEL else TxKind.APPROVAL
+                repo.findSameDay(TxSource.NOTIFICATION, card.issuer, maskOf(card.last4), amount, kind, f.date).firstOrNull()
+            } else {
+                null
+            }
             f.copy(
                 originalCandidates = candidates,
+                duplicateWarning = sameDay?.let {
+                    "같은 날 같은 금액의 결제가 이미 있어요: ${it.merchant} ${it.approvedAt.toLocalTime()}. 중복이 아닌지 확인해 주세요."
+                },
                 canSave = card != null && amount != null && f.merchant.isNotBlank(),
             )
         }

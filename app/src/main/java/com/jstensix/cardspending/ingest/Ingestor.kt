@@ -13,11 +13,12 @@ import com.jstensix.cardspending.parsing.ParsedTransaction
 import com.jstensix.cardspending.rules.findOriginal
 import com.jstensix.cardspending.rules.isSameTransaction
 import java.security.MessageDigest
+import java.time.Duration
 import java.time.LocalDateTime
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-enum class IngestResult { INSERTED, DUPLICATE, UNPARSED, IGNORED }
+enum class IngestResult { INSERTED, DUPLICATE, MERGED, UNPARSED, IGNORED }
 
 /** Identity of an unrecognized alert. Arrival time is left out so a re-posted alert maps to the same row. */
 fun NotificationMessage.contentHash(): String {
@@ -84,23 +85,34 @@ class Ingestor(
         } else {
             null
         }
-        repo.insertNotificationTx(
-            Transaction(
-                issuer = tx.issuer,
-                kind = tx.kind,
-                amount = tx.amount,
-                merchant = tx.merchant,
-                mask = tx.mask,
-                installment = tx.installment,
-                approvedAt = tx.approvedAt,
-                cumulative = tx.cumulative,
-                source = TxSource.NOTIFICATION,
-                sourcePackage = sourcePackage,
-                rawText = tx.rawText,
-                originalId = originalId,
-                createdAt = now(),
-            ),
+        val row = Transaction(
+            issuer = tx.issuer,
+            kind = tx.kind,
+            amount = tx.amount,
+            merchant = tx.merchant,
+            mask = tx.mask,
+            installment = tx.installment,
+            approvedAt = tx.approvedAt,
+            cumulative = tx.cumulative,
+            source = TxSource.NOTIFICATION,
+            sourcePackage = sourcePackage,
+            rawText = tx.rawText,
+            originalId = originalId,
+            createdAt = now(),
         )
+
+        // A hand-entered row for the same payment (before install, or from an unrecognized alert) is
+        // replaced by the real data instead of counting the payment twice.
+        val manual = repo.findSameDay(TxSource.MANUAL, tx.issuer, tx.mask, tx.amount, tx.kind, tx.approvedAt.toLocalDate())
+            .minByOrNull { Duration.between(it.approvedAt, tx.approvedAt).abs() }
+        if (manual != null) {
+            repo.upgradeManual(
+                row.copy(id = manual.id, manualRecognition = manual.manualRecognition, originalId = originalId ?: manual.originalId),
+            )
+            return IngestResult.MERGED
+        }
+
+        repo.insertNotificationTx(row)
         return IngestResult.INSERTED
     }
 }

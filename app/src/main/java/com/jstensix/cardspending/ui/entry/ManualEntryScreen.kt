@@ -120,6 +120,7 @@ fun ManualEntryScreen(
                     ) { vm.setOriginal(tx.id) }
                 }
             }
+            state.duplicateWarning?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Button(onClick = onSave, enabled = state.canSave, modifier = Modifier.fillMaxWidth()) { Text("저장") }
         }
     }
