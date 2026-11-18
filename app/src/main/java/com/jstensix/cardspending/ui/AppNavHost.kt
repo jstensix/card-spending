@@ -1,5 +1,8 @@
 package com.jstensix.cardspending.ui
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -160,7 +163,8 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container
 
 @Composable
 private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupWarning: Flow<String?>, modifier: Modifier) {
-    // No screen transition animations: screens switch instantly.
+    // No screen transition animations: screens switch instantly. Back has its own pair (shrink + fade by
+    // default) that also has to be switched off.
     NavHost(
         navController = nav,
         startDestination = MainRoute,
@@ -169,9 +173,23 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
         exitTransition = { ExitTransition.None },
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None },
+        predictivePopEnterTransition = { EnterTransition.None },
+        predictivePopExitTransition = { ExitTransition.None },
     ) {
         composable<MainRoute> {
             val context = LocalContext.current
+            val activity = LocalActivity.current
+            val exitGate = remember { ExitOnSecondBack() }
+            val warning = remember { arrayOfNulls<Toast>(1) }
+            // Handling back here also keeps the system's back-to-home animation from playing.
+            BackHandler {
+                if (exitGate.onBack()) {
+                    warning[0]?.cancel()
+                    activity?.finish()
+                } else {
+                    warning[0] = Toast.makeText(context, "한 번 더 뒤로 가면 앱이 꺼져요", Toast.LENGTH_SHORT).also { it.show() }
+                }
+            }
             val vm = viewModel {
                 MainViewModel(container.repository, { DeviceStatus.isListenerEnabled(context) }, backupWarning)
             }
