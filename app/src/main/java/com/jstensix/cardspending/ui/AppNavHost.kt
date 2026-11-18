@@ -14,6 +14,7 @@ import com.jstensix.cardspending.ui.detail.CardDetailScreen
 import com.jstensix.cardspending.ui.detail.CardDetailViewModel
 import com.jstensix.cardspending.ui.entry.ManualEntryScreen
 import com.jstensix.cardspending.ui.entry.ManualEntryViewModel
+import com.jstensix.cardspending.ui.setup.SetupScreen
 import com.jstensix.cardspending.ui.unparsed.UnparsedScreen
 import java.time.YearMonth
 import kotlinx.coroutines.launch
@@ -139,7 +140,7 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = flowOf(nu
                 onDismiss = { id -> scope.launch { container.repository.dismissUnparsed(id) } },
             )
         }
-        composable<SetupRoute> { Placeholder("권한 안내") }
+        composable<SetupRoute> { SetupScreen(onBack = { nav.popBackStack() }) }
         composable<SettingsRoute> { Placeholder("설정") }
     }
 }
