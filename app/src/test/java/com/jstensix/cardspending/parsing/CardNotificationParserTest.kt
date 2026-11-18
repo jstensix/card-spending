@@ -40,6 +40,32 @@ class CardNotificationParserTest {
         )
     }
 
+    @Test fun kakaoChatWithPaymentWords_ignoredEvenWhenKakaoKnown() {
+        assertEquals(
+            ParseOutcome.Ignored,
+            CardNotificationParser.parse(m("com.kakao.talk", "친구", "회비 30,000원 결제 부탁해"), setOf("com.kakao.talk")),
+        )
+    }
+
+    @Test fun kakaoChatMentioningIssuer_ignored() {
+        assertEquals(
+            ParseOutcome.Ignored,
+            CardNotificationParser.parse(m("com.kakao.talk", "친구", "롯데카드 혜택 좋더라 10,000원 할인"), emptySet()),
+        )
+    }
+
+    @Test fun conversationMessage_onlyTitleCounts() {
+        val chat = NotificationMessage("com.some.messenger", "친구", "하나카드 0*8* 5,000원", t, conversation = true)
+        assertEquals(ParseOutcome.Ignored, CardNotificationParser.parse(chat, emptySet()))
+    }
+
+    @Test fun foreignCurrencyCardPush_candidate() {
+        assertEquals(
+            ParseOutcome.Candidate,
+            CardNotificationParser.parse(m("com.hanacard.app", "(해외승인) 12.00 USD", "AMAZON / 신용(일시불,0*8*) / 11.18 17:29"), emptySet()),
+        )
+    }
+
     @Test fun knownPackagePaymentText_candidate_unknownPackage_ignored() {
         val body = "결제 12,000원 완료"
         assertEquals(

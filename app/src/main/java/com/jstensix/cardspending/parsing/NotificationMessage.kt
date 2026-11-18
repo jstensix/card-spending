@@ -8,4 +8,6 @@ data class NotificationMessage(
     val title: String?,
     val body: String,
     val postedAt: LocalDateTime,
+    /** From a chat-style notification: the body is someone's message, so only the title (sender/channel) may be trusted. */
+    val conversation: Boolean = false,
 )

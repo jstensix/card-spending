@@ -28,7 +28,7 @@ object NotificationExtractor {
             return messages.mapNotNull { message ->
                 val body = message.text?.toString()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
                 val time = if (message.timestamp > 0) message.timestamp else postTime
-                NotificationMessage(packageName, messageTitle, body, toLocal(time, zone))
+                NotificationMessage(packageName, messageTitle, body, toLocal(time, zone), conversation = true)
             }
         }
 

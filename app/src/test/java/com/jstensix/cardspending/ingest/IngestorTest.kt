@@ -92,6 +92,13 @@ class IngestorTest {
         assertTrue(repo.snapshot().third.isEmpty())
     }
 
+    @Test fun kakaoChatAfterLottePayment_notStored() = runTest {
+        ingestor.ingest(lotte())
+        val chat = NotificationMessage("com.kakao.talk", "친구", "회비 30,000원 결제 부탁해", posted)
+        assertEquals(IngestResult.IGNORED, ingestor.ingest(chat))
+        assertTrue(repo.snapshot().third.isEmpty())
+    }
+
     @Test fun kakaoRepost_insertsEachOnce() = runTest {
         val m1 = lotte()
         val m2 = lotte(LOTTE_SAMPLE.replace("11,000원", "25,000원").replace("3,220,782", "3,245,782"))

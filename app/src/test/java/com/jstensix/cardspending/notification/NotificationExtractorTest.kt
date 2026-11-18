@@ -51,6 +51,7 @@ class NotificationExtractorTest {
         assertEquals(listOf("첫 번째", "두 번째"), messages.map { it.body })
         assertEquals(listOf("롯데카드", "롯데카드"), messages.map { it.title })
         assertEquals(LocalDateTime.of(2026, 11, 18, 12, 10), messages[1].postedAt)
+        assertTrue(messages.all { it.conversation })
     }
 
     @Test fun plainText_usesText() {
