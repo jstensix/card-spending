@@ -12,6 +12,9 @@ import com.jstensix.cardspending.ui.cards.CardEditViewModel
 import com.jstensix.cardspending.ui.cards.CardListScreen
 import com.jstensix.cardspending.ui.detail.CardDetailScreen
 import com.jstensix.cardspending.ui.detail.CardDetailViewModel
+import com.jstensix.cardspending.ui.entry.ManualEntryScreen
+import com.jstensix.cardspending.ui.entry.ManualEntryViewModel
+import com.jstensix.cardspending.ui.unparsed.UnparsedScreen
 import java.time.YearMonth
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -106,8 +109,36 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = flowOf(nu
                 onAddCancel = { nav.navigate(EntryRoute(cardId = route.cardId, cancel = true)) },
             )
         }
-        composable<EntryRoute> { Placeholder("결제 직접 추가") }
-        composable<UnparsedRoute> { Placeholder("인식 실패 목록") }
+        composable<EntryRoute> { entry ->
+            val route = entry.toRoute<EntryRoute>()
+            val vm = viewModel {
+                ManualEntryViewModel(
+                    container.repository,
+                    route.cardId.takeIf { it != 0L },
+                    route.unparsedId.takeIf { it != 0L },
+                    route.cancel,
+                )
+            }
+            val state by vm.state.collectAsStateWithLifecycle()
+            val scope = rememberCoroutineScope()
+            ManualEntryScreen(
+                state = state,
+                vm = vm,
+                onSave = { scope.launch { if (vm.save()) nav.popBackStack() } },
+                onBack = { nav.popBackStack() },
+            )
+        }
+        composable<UnparsedRoute> {
+            val items by container.repository.observeUnparsed().collectAsStateWithLifecycle(emptyList())
+            val scope = rememberCoroutineScope()
+            UnparsedScreen(
+                items = items,
+                onBack = { nav.popBackStack() },
+                onRegisterPayment = { id -> nav.navigate(EntryRoute(unparsedId = id)) },
+                onRegisterCancel = { id -> nav.navigate(EntryRoute(unparsedId = id, cancel = true)) },
+                onDismiss = { id -> scope.launch { container.repository.dismissUnparsed(id) } },
+            )
+        }
         composable<SetupRoute> { Placeholder("권한 안내") }
         composable<SettingsRoute> { Placeholder("설정") }
     }
