@@ -1,8 +1,10 @@
 package com.jstensix.cardspending.ui.entry
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,7 +33,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -53,6 +54,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.R
+import com.jstensix.cardspending.ui.components.BounceTextButton
+import com.jstensix.cardspending.ui.components.bounce
 import com.jstensix.cardspending.ui.components.BrandIcon
 import com.jstensix.cardspending.ui.components.BrandTextField
 import com.jstensix.cardspending.ui.components.BrandTopBar
@@ -224,12 +227,12 @@ fun ManualEntryScreen(
         DatePickerDialog(
             onDismissRequest = { showDate = false },
             confirmButton = {
-                TextButton(onClick = {
+                BounceTextButton(onClick = {
                     pickerState.selectedDateMillis?.let { vm.setDate(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
                     showDate = false
                 }) { Text("확인") }
             },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text("취소") } },
+            dismissButton = { BounceTextButton(onClick = { showDate = false }) { Text("취소") } },
         ) { DatePicker(state = pickerState) }
     }
     if (showTime) {
@@ -239,12 +242,12 @@ fun ManualEntryScreen(
             containerColor = Brand.Canvas,
             text = { TimePicker(state = timeState) },
             confirmButton = {
-                TextButton(onClick = {
+                BounceTextButton(onClick = {
                     vm.setTime(LocalTime.of(timeState.hour, timeState.minute))
                     showTime = false
                 }) { Text("확인") }
             },
-            dismissButton = { TextButton(onClick = { showTime = false }) { Text("취소") } },
+            dismissButton = { BounceTextButton(onClick = { showTime = false }) { Text("취소") } },
         )
     }
 }
@@ -252,13 +255,15 @@ fun ManualEntryScreen(
 @Composable
 private fun OriginalChoice(selected: Boolean, onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
     val shape = RoundedCornerShape(12.dp)
+    val source = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
+            .bounce(source, 0.97f)
             .clip(shape)
             .border(if (selected) 2.dp else 1.dp, if (selected) Brand.Primary else Brand.Hairline, shape)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,

@@ -1,8 +1,10 @@
 package com.jstensix.cardspending.ui.components
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -23,9 +25,9 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,14 +71,22 @@ fun NavySummaryCard(
 /** card-feature-light at app scale: white, 12dp, hairline, level-1 lift. */
 @Composable
 fun WhiteCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    val source = remember { MutableInteractionSource() }
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.bounce(source, 0.97f) else Modifier)
             .shadow(1.dp, CardShape, ambientColor = ShadowBlue, spotColor = ShadowBlue)
             .background(Brand.Canvas, CardShape)
             .border(1.dp, Brand.Hairline, CardShape)
             .clip(CardShape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .padding(14.dp),
         content = content,
     )
@@ -94,7 +104,7 @@ fun BrandTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composabl
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
-            IconButton(onClick = onBack) {
+            BounceIconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "뒤로", tint = Brand.Ink)
             }
         } else {
@@ -116,11 +126,11 @@ fun BrandTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composabl
 @Composable
 fun MonthSwitcher(label: String, onPrevious: () -> Unit, onNext: () -> Unit) {
     Row(Modifier.clip(PillShape).background(Brand.CanvasSoft), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onPrevious, modifier = Modifier.size(40.dp)) {
+        BounceIconButton(onClick = onPrevious, modifier = Modifier.size(40.dp)) {
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = "이전 달", tint = Brand.Ink)
         }
         Text(label, style = BrandText.label, color = Brand.Ink)
-        IconButton(onClick = onNext, modifier = Modifier.size(40.dp)) {
+        BounceIconButton(onClick = onNext, modifier = Modifier.size(40.dp)) {
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "다음 달", tint = Brand.Ink)
         }
     }

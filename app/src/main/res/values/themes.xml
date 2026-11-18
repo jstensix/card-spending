@@ -3,5 +3,7 @@
         <item name="android:windowBackground">@color/canvas_soft</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
+        <!-- No activity open/close animation. -->
+        <item name="android:windowAnimationStyle">@null</item>
     </style>
 </resources>

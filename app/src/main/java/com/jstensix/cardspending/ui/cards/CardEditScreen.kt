@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +28,7 @@ import com.jstensix.cardspending.model.ExclusionItem
 import com.jstensix.cardspending.model.Issuer
 import com.jstensix.cardspending.rules.isValidLast4
 import com.jstensix.cardspending.rules.maskOf
+import com.jstensix.cardspending.ui.components.BounceTextButton
 import com.jstensix.cardspending.ui.components.BrandTextField
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.DigitBoxes
@@ -103,7 +103,7 @@ fun CardEditScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (isEditing) {
-                TextButton(onClick = onDelete) { Text("카드 삭제", style = BrandText.label, color = Brand.InkMute) }
+                BounceTextButton(onClick = onDelete) { Text("카드 삭제", style = BrandText.label, color = Brand.InkMute) }
             }
             PillButton("저장", onClick = onSave, enabled = state.canSave, modifier = Modifier.fillMaxWidth())
         }

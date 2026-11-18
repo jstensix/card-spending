@@ -21,7 +21,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +37,7 @@ import android.util.Log
 import com.google.android.gms.common.api.ApiException
 import com.jstensix.cardspending.backup.ConnectStep
 import com.jstensix.cardspending.backup.ConsentResult
+import com.jstensix.cardspending.ui.components.BounceTextButton
 import com.jstensix.cardspending.ui.components.IconTile
 import com.jstensix.cardspending.backup.DriveAuth
 import com.jstensix.cardspending.ui.components.BrandTopBar
@@ -174,7 +174,7 @@ fun SettingsScreen(state: SettingsState, vm: SettingsViewModel, driveAuth: Drive
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = vm::cancelConnect) { Text("취소", color = Brand.InkMute) } },
+            dismissButton = { BounceTextButton(onClick = vm::cancelConnect) { Text("취소", color = Brand.InkMute) } },
         )
     }
     if (confirmRestore) {
@@ -183,8 +183,8 @@ fun SettingsScreen(state: SettingsState, vm: SettingsViewModel, driveAuth: Drive
             containerColor = Brand.Canvas,
             title = { Text("드라이브에서 복원", style = BrandText.title) },
             text = { Text("지금 폰에 있는 데이터를 드라이브의 최신 백업으로 덮어써요. 계속할까요?", style = BrandText.label) },
-            confirmButton = { TextButton(onClick = { confirmRestore = false; vm.restore() }) { Text("덮어쓰기", color = Brand.Primary) } },
-            dismissButton = { TextButton(onClick = { confirmRestore = false }) { Text("취소", color = Brand.InkMute) } },
+            confirmButton = { BounceTextButton(onClick = { confirmRestore = false; vm.restore() }) { Text("덮어쓰기", color = Brand.Primary) } },
+            dismissButton = { BounceTextButton(onClick = { confirmRestore = false }) { Text("취소", color = Brand.InkMute) } },
         )
     }
 }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Alignment
 import com.jstensix.cardspending.R
 import com.jstensix.cardspending.model.UnparsedNotification
+import com.jstensix.cardspending.ui.components.BounceTextButton
 import com.jstensix.cardspending.ui.components.IconTile
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.PillButton
@@ -75,8 +75,8 @@ fun UnparsedScreen(
                     }
                     Row {
                         // 무시: hidden, and the same alert re-posted later stays hidden. 삭제: the text is gone for good.
-                        TextButton(onClick = { onDismiss(item.id) }) { Text("무시", style = BrandText.label, color = Brand.InkMute) }
-                        TextButton(onClick = { onDelete(item.id) }) { Text("삭제", style = BrandText.label, color = Brand.InkMute) }
+                        BounceTextButton(onClick = { onDismiss(item.id) }) { Text("무시", style = BrandText.label, color = Brand.InkMute) }
+                        BounceTextButton(onClick = { onDelete(item.id) }) { Text("삭제", style = BrandText.label, color = Brand.InkMute) }
                     }
                 }
             }

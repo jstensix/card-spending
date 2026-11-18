@@ -1,6 +1,9 @@
 package com.jstensix.cardspending.ui
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
@@ -32,6 +35,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
 import com.jstensix.cardspending.R
+import com.jstensix.cardspending.ui.components.bounce
 import com.jstensix.cardspending.ui.theme.Brand
 import com.jstensix.cardspending.ui.theme.BrandText
 import kotlinx.coroutines.flow.map
@@ -84,12 +88,12 @@ private val TABS = listOf(
 )
 
 @Composable
-private fun TabIcon(tab: Tab, selected: Boolean) {
+private fun TabIcon(tab: Tab, selected: Boolean, source: MutableInteractionSource) {
     Icon(
         painterResource(if (selected) tab.on else tab.off),
         contentDescription = null,
         tint = Color.Unspecified,
-        modifier = Modifier.size(26.dp),
+        modifier = Modifier.bounce(source, 0.85f).size(26.dp),
     )
 }
 
@@ -114,14 +118,16 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container
                     NavigationBar(containerColor = Brand.Canvas, tonalElevation = 0.dp) {
                         TABS.forEach { tab ->
                             val selected = destination.isTab(tab)
+                            val source = remember(tab) { MutableInteractionSource() }
                             NavigationBarItem(
                                 selected = selected,
+                                interactionSource = source,
                                 onClick = { nav.navigateToTab(tab.route) },
                                 icon = {
                                     if (tab.route == UnparsedRoute && unparsedCount > 0) {
-                                        BadgedBox(badge = { Badge(containerColor = Brand.Ruby) { Text("$unparsedCount") } }) { TabIcon(tab, selected) }
+                                        BadgedBox(badge = { Badge(containerColor = Brand.Ruby) { Text("$unparsedCount") } }) { TabIcon(tab, selected, source) }
                                     } else {
-                                        TabIcon(tab, selected)
+                                        TabIcon(tab, selected, source)
                                     }
                                 },
                                 label = { Text(tab.label, style = BrandText.eyebrow) },
@@ -154,7 +160,16 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container
 
 @Composable
 private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupWarning: Flow<String?>, modifier: Modifier) {
-    NavHost(navController = nav, startDestination = MainRoute, modifier = modifier) {
+    // No screen transition animations: screens switch instantly.
+    NavHost(
+        navController = nav,
+        startDestination = MainRoute,
+        modifier = modifier,
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None },
+    ) {
         composable<MainRoute> {
             val context = LocalContext.current
             val vm = viewModel {

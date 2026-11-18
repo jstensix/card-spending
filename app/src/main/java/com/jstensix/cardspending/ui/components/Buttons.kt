@@ -1,6 +1,7 @@
 package com.jstensix.cardspending.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -62,7 +63,7 @@ fun PillButton(
         contentColor = if (primary) Brand.Canvas else Brand.Primary,
         border = if (primary) null else BorderStroke(1.dp, Brand.Primary),
         interactionSource = interaction,
-        modifier = modifier.heightIn(min = 44.dp).alpha(if (enabled) 1f else 0.4f),
+        modifier = modifier.bounce(interaction).heightIn(min = 44.dp).alpha(if (enabled) 1f else 0.4f),
     ) {
         // Two lines before ellipsis: narrow phones and large font scales must not cut a label short.
         Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
@@ -80,13 +81,15 @@ fun PillChip(
     modifier: Modifier = Modifier,
     leading: (@Composable () -> Unit)? = null,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Surface(
         onClick = onClick,
         shape = PillShape,
         color = if (selected) Brand.Subdued else Brand.Canvas,
         contentColor = if (selected) Brand.PrimaryDeep else Brand.Ink,
         border = if (selected) null else BorderStroke(1.dp, Brand.Hairline),
-        modifier = modifier.heightIn(min = 36.dp),
+        interactionSource = interaction,
+        modifier = modifier.bounce(interaction, 0.92f).heightIn(min = 36.dp),
     ) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (leading != null) {
@@ -106,10 +109,11 @@ fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
-            val cell = Modifier.weight(1f).heightIn(min = 36.dp)
+            val source = remember { MutableInteractionSource() }
+            val cell = Modifier.weight(1f).heightIn(min = 36.dp).bounce(source, 0.93f)
             Box(
                 modifier = (if (selected) cell.shadow(1.dp, PillShape).background(Brand.Canvas, PillShape) else cell.clip(PillShape))
-                    .clickable { onSelect(index) }
+                    .clickable(interactionSource = source, indication = LocalIndication.current) { onSelect(index) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -123,12 +127,14 @@ fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -
 @Composable
 fun LogoChoiceCard(issuer: Issuer, label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(12.dp)
+    val source = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
+            .bounce(source)
             .clip(shape)
             .background(Brand.Canvas)
             .border(if (selected) 2.dp else 1.dp, if (selected) Brand.Primary else Brand.Hairline, shape)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick)
             .padding(if (selected) 9.dp else 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

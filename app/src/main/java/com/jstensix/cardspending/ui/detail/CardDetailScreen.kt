@@ -1,7 +1,6 @@
 package com.jstensix.cardspending.ui.detail
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,7 +18,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.model.TxKind
+import com.jstensix.cardspending.ui.components.BounceTextButton
+import com.jstensix.cardspending.ui.components.bounceClickable
 import com.jstensix.cardspending.ui.components.BrandTopBar
 import com.jstensix.cardspending.ui.components.MonthPill
 import com.jstensix.cardspending.ui.components.NavySummaryCard
@@ -133,7 +133,7 @@ fun CardDetailScreen(
 @Composable
 private fun TxRow(item: TxItem, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().bounceClickable(pressedScale = 0.98f, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -173,6 +173,6 @@ private fun TxSheet(item: TxItem, onSetRecognition: (Boolean?) -> Unit, onDelete
             SoftBox(it)
         }
         Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onDelete) { Text("이 결제 삭제", style = BrandText.label, color = Brand.InkMute) }
+        BounceTextButton(onClick = onDelete) { Text("이 결제 삭제", style = BrandText.label, color = Brand.InkMute) }
     }
 }
