@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# IDE settings and local tooling (session scratch, mockups)
+.idea/
+.superpowers/
