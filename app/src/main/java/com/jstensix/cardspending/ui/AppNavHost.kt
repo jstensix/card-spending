@@ -10,6 +10,9 @@ import androidx.navigation.toRoute
 import com.jstensix.cardspending.ui.cards.CardEditScreen
 import com.jstensix.cardspending.ui.cards.CardEditViewModel
 import com.jstensix.cardspending.ui.cards.CardListScreen
+import com.jstensix.cardspending.ui.detail.CardDetailScreen
+import com.jstensix.cardspending.ui.detail.CardDetailViewModel
+import java.time.YearMonth
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,7 +92,20 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = flowOf(nu
                 onBack = { nav.popBackStack() },
             )
         }
-        composable<CardDetailRoute> { Placeholder("카드 결제 내역") }
+        composable<CardDetailRoute> { entry ->
+            val route = entry.toRoute<CardDetailRoute>()
+            val vm = viewModel { CardDetailViewModel(container.repository, route.cardId, YearMonth.parse(route.month)) }
+            val state by vm.state.collectAsStateWithLifecycle()
+            val scope = rememberCoroutineScope()
+            CardDetailScreen(
+                state = state,
+                onBack = { nav.popBackStack() },
+                onSetRecognition = { id, value -> scope.launch { vm.setRecognition(id, value) } },
+                onDelete = { id -> scope.launch { vm.delete(id) } },
+                onAddPayment = { nav.navigate(EntryRoute(cardId = route.cardId)) },
+                onAddCancel = { nav.navigate(EntryRoute(cardId = route.cardId, cancel = true)) },
+            )
+        }
         composable<EntryRoute> { Placeholder("결제 직접 추가") }
         composable<UnparsedRoute> { Placeholder("인식 실패 목록") }
         composable<SetupRoute> { Placeholder("권한 안내") }
