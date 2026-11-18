@@ -25,8 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import com.jstensix.cardspending.model.Issuer
 import com.jstensix.cardspending.ui.IssuerLogo
 import com.jstensix.cardspending.ui.theme.Brand
@@ -62,8 +64,9 @@ fun PillButton(
         interactionSource = interaction,
         modifier = modifier.heightIn(min = 44.dp).alpha(if (enabled) 1f else 0.4f),
     ) {
+        // Two lines before ellipsis: narrow phones and large font scales must not cut a label short.
         Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-            Text(text, style = BrandText.button, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text, style = BrandText.button.copy(lineHeight = 1.25.em), textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }

@@ -152,7 +152,9 @@ fun SettingsScreen(state: SettingsState, vm: SettingsViewModel, driveAuth: Drive
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("마지막 백업: ${driveTime(latest.createdTime)}", style = BrandText.caption, color = Brand.InkMute)
                     Text("어느 쪽 데이터를 남길까요? 선택하기 전에는 연결되지 않아요.", style = BrandText.label, color = Brand.Ink)
-                    PillButton("드라이브 백업으로 복원 (이 폰의 데이터는 지워져요)", onClick = vm::chooseRestore, modifier = Modifier.fillMaxWidth())
+                    // The destructive consequence lives in the body, never in a button label that could be cut off.
+                    Text("드라이브 백업으로 복원하면 이 폰의 데이터는 지워져요.", style = BrandText.label, color = Brand.Ruby)
+                    PillButton("드라이브 백업으로 복원", onClick = vm::chooseRestore, modifier = Modifier.fillMaxWidth())
                     PillButton("이 폰의 데이터로 덮어쓰기", onClick = vm::chooseOverwrite, style = PillStyle.Secondary, modifier = Modifier.fillMaxWidth())
                 }
             },
