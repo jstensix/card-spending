@@ -25,7 +25,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
@@ -102,13 +101,7 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container
                         TABS.forEach { tab ->
                             NavigationBarItem(
                                 selected = destination.isTab(tab),
-                                onClick = {
-                                    nav.navigate(tab.route) {
-                                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
+                                onClick = { nav.navigateToTab(tab.route) },
                                 icon = {
                                     if (tab.route == UnparsedRoute && unparsedCount > 0) {
                                         BadgedBox(badge = { Badge(containerColor = Brand.Ruby) { Text("$unparsedCount") } }) { tab.icon() }
@@ -148,15 +141,16 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
                 vm.refreshDeviceStatus()
                 onPauseOrDispose { }
             }
+            val actions = remember(nav) { MainNavActions(nav) }
             MainScreen(
                 state = state,
                 onPreviousMonth = vm::previousMonth,
                 onNextMonth = vm::nextMonth,
                 onOpenCard = { id -> nav.navigate(CardDetailRoute(id, state.month.toString())) },
-                onOpenCards = { nav.navigate(CardsRoute) },
-                onOpenSettings = { nav.navigate(SettingsRoute) },
+                onOpenCards = actions::openCards,
+                onOpenSettings = actions::openSettings,
                 onOpenSetup = { nav.navigate(SetupRoute) },
-                onOpenUnparsed = { nav.navigate(UnparsedRoute) },
+                onOpenUnparsed = actions::openUnparsed,
             )
         }
         composable<CardsRoute> {
