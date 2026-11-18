@@ -11,6 +11,8 @@ import com.jstensix.cardspending.rules.RecognitionReason
 import com.jstensix.cardspending.rules.owns
 import com.jstensix.cardspending.rules.recognize
 import com.jstensix.cardspending.rules.summarizeMonth
+import com.jstensix.cardspending.ui.model.DayGroup
+import com.jstensix.cardspending.ui.model.groupByDay
 import java.time.YearMonth
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,8 @@ data class CardDetailState(
     val items: List<TxItem>,
     val payment: Long,
     val recognized: Long,
+    /** [items] grouped by approval day, newest first. */
+    val days: List<DayGroup<TxItem>> = emptyList(),
 )
 
 fun recognitionLabel(recognition: Recognition): String = when (val reason = recognition.reason) {
@@ -46,7 +50,7 @@ class CardDetailViewModel(private val repo: SpendingRepository, cardId: Long, mo
             TxItem(tx, signed, recognition.recognized, recognitionLabel(recognition))
         }
         val totals = summarizeMonth(listOf(card), data.transactions, data.originalsById).cards.single()
-        CardDetailState(card, month, items, totals.payment, totals.recognized)
+        CardDetailState(card, month, items, totals.payment, totals.recognized, groupByDay(items) { it.tx.approvedAt.toLocalDate() })
     }.stateIn(viewModelScope, SharingStarted.Eagerly, CardDetailState(null, month, emptyList(), 0, 0))
 
     /** null = back to the card's rules. */

@@ -58,6 +58,12 @@ class CardDetailViewModelTest {
         assertEquals(10000L, state.recognized)
     }
 
+    @Test fun days_groupedNewestFirst() {
+        val state = vm().state.await { it.items.size == 2 }
+        assertEquals(listOf("11월 4일 (수)", "11월 3일 (화)"), state.days.map { it.label })
+        assertEquals(listOf("국세"), state.days.first().items.map { it.tx.merchant })
+    }
+
     @Test fun manualRecognition_updatesLabelAndTotals() {
         val viewModel = vm()
         viewModel.state.await { it.items.size == 2 }
