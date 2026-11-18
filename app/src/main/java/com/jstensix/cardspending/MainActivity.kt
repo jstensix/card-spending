@@ -3,12 +3,15 @@ package com.jstensix.cardspending
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.activity.enableEdgeToEdge
+import com.jstensix.cardspending.ui.AppNavHost
+import com.jstensix.cardspending.ui.theme.CardSpendingTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { Text("CardSpending") } }
+        enableEdgeToEdge()
+        val container = (application as CardSpendingApp).container
+        setContent { CardSpendingTheme { AppNavHost(container) } }
     }
 }
