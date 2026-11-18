@@ -5,6 +5,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.toRoute
+import com.jstensix.cardspending.ui.cards.CardEditScreen
+import com.jstensix.cardspending.ui.cards.CardEditViewModel
+import com.jstensix.cardspending.ui.cards.CardListScreen
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -57,8 +63,32 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = flowOf(nu
                 onOpenUnparsed = { nav.navigate(UnparsedRoute) },
             )
         }
-        composable<CardsRoute> { Placeholder("카드 관리") }
-        composable<CardEditRoute> { Placeholder("카드 편집") }
+        composable<CardsRoute> {
+            val cards by container.repository.observeCards().collectAsStateWithLifecycle(emptyList())
+            CardListScreen(
+                cards = cards,
+                onBack = { nav.popBackStack() },
+                onEdit = { id -> nav.navigate(CardEditRoute(id)) },
+                onAdd = { nav.navigate(CardEditRoute()) },
+            )
+        }
+        composable<CardEditRoute> { entry ->
+            val cardId = entry.toRoute<CardEditRoute>().cardId.takeIf { it != 0L }
+            val vm = viewModel { CardEditViewModel(container.repository, cardId) }
+            val state by vm.state.collectAsStateWithLifecycle()
+            val scope = rememberCoroutineScope()
+            CardEditScreen(
+                state = state,
+                isEditing = cardId != null,
+                onIssuer = vm::setIssuer,
+                onLast4 = vm::setLast4,
+                onNickname = vm::setNickname,
+                onToggle = vm::toggleExclusion,
+                onSave = { scope.launch { if (vm.save()) nav.popBackStack() } },
+                onDelete = { scope.launch { vm.delete(); nav.popBackStack() } },
+                onBack = { nav.popBackStack() },
+            )
+        }
         composable<CardDetailRoute> { Placeholder("카드 결제 내역") }
         composable<EntryRoute> { Placeholder("결제 직접 추가") }
         composable<UnparsedRoute> { Placeholder("인식 실패 목록") }
