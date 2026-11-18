@@ -41,6 +41,8 @@ data class MainUiState(
     val backupWarning: String?,
     val totalPayment: Long = 0,
     val totalRecognized: Long = 0,
+    /** False until the first database emission; the screen draws nothing rather than flash "no cards, 0원". */
+    val loaded: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -77,6 +79,7 @@ class MainViewModel(
             backupWarning = warning,
             totalPayment = rows.sumOf { it.payment },
             totalRecognized = rows.sumOf { it.recognized },
+            loaded = true,
         )
     }.stateIn(
         viewModelScope,

@@ -56,6 +56,7 @@ fun MainScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (!state.loaded) return@LazyColumn
             item {
                 val percent = recognizedPercent(state.totalPayment, state.totalRecognized)
                 NavySummaryCard(

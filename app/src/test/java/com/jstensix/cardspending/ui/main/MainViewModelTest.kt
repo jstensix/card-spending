@@ -58,6 +58,13 @@ class MainViewModelTest {
         assertEquals(CardRow(cardId, Issuer.LOTTE, "텔로", "7*1*", 60000, 10000, excludedCount = 1), state.rows.single())
     }
 
+    @Test fun notLoadedUntilDataArrives_thenLoaded() {
+        val viewModel = MainViewModel(repo, { false }, flowOf(null), november)
+        val state = viewModel.state.await { it.loaded }
+        assertEquals(emptyList<CardRow>(), state.rows)
+        assertEquals(false, MainUiState(november, emptyList(), 0, 0, false, null).loaded)
+    }
+
     @Test fun totalsAndExcludedCount() {
         seedTaxCard()
         runBlocking {
