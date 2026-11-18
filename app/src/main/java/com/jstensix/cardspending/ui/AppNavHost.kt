@@ -222,7 +222,6 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
             val scope = rememberCoroutineScope()
             UnparsedScreen(
                 items = items,
-                onBack = { nav.popBackStack() },
                 onRegisterPayment = { id -> nav.navigate(EntryRoute(unparsedId = id)) },
                 onRegisterCancel = { id -> nav.navigate(EntryRoute(unparsedId = id, cancel = true)) },
                 onDismiss = { id -> scope.launch { container.repository.dismissUnparsed(id) } },
@@ -243,7 +242,7 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
                 )
             }
             val state by vm.state.collectAsStateWithLifecycle()
-            SettingsScreen(state = state, vm = vm, driveAuth = container.driveAuth, onBack = { nav.popBackStack() })
+            SettingsScreen(state = state, vm = vm, driveAuth = container.driveAuth, onOpenSetup = { nav.navigate(SetupRoute) })
         }
     }
 }

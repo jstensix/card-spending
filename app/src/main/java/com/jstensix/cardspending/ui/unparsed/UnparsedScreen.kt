@@ -1,66 +1,72 @@
 package com.jstensix.cardspending.ui.unparsed
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.model.UnparsedNotification
+import com.jstensix.cardspending.ui.components.BrandTopBar
+import com.jstensix.cardspending.ui.components.PillButton
+import com.jstensix.cardspending.ui.components.PillStyle
+import com.jstensix.cardspending.ui.components.SoftBox
+import com.jstensix.cardspending.ui.components.WhiteCard
+import com.jstensix.cardspending.ui.theme.Brand
+import com.jstensix.cardspending.ui.theme.BrandText
 import java.time.format.DateTimeFormatter
 
-private val RECEIVED = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+private val RECEIVED = DateTimeFormatter.ofPattern("M월 d일 HH:mm")
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Tab screen ("알림함"): alerts that looked like card payments but no parser understood. */
 @Composable
 fun UnparsedScreen(
     items: List<UnparsedNotification>,
-    onBack: () -> Unit,
     onRegisterPayment: (Long) -> Unit,
     onRegisterCancel: (Long) -> Unit,
     onDismiss: (Long) -> Unit,
     onDelete: (Long) -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("읽지 못한 카드 알림") }, navigationIcon = { TextButton(onClick = onBack) { Text("뒤로") } })
-        },
-    ) { padding ->
+    Column(Modifier.fillMaxSize().background(Brand.Canvas)) {
+        BrandTopBar("알림함")
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                Text("카드 결제처럼 보이지만 읽지 못한 알림이에요", style = BrandText.caption, color = Brand.InkMute)
+            }
             if (items.isEmpty()) {
-                item { Text("읽지 못한 알림이 없어요", modifier = Modifier.padding(16.dp)) }
+                item { Text("읽지 못한 알림이 없어요", style = BrandText.body, color = Brand.InkMute, modifier = Modifier.padding(vertical = 24.dp)) }
             }
             items(items, key = { it.id }) { item ->
-                Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text("${item.postedAt.format(RECEIVED)} · ${item.packageName}", style = MaterialTheme.typography.bodySmall)
-                        item.title?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
-                        Text(item.body, style = MaterialTheme.typography.bodyMedium)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { onRegisterPayment(item.id) }) { Text("결제로 등록") }
-                            TextButton(onClick = { onRegisterCancel(item.id) }) { Text("취소로 등록") }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            // 무시: hidden, but the same alert re-posted later stays hidden. 삭제: the text is gone for good.
-                            TextButton(onClick = { onDismiss(item.id) }) { Text("무시") }
-                            TextButton(onClick = { onDelete(item.id) }) { Text("삭제") }
-                        }
+                WhiteCard {
+                    Text("${item.postedAt.format(RECEIVED)} · ${item.packageName}", style = BrandText.caption, color = Brand.InkMute)
+                    item.title?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, style = BrandText.body, color = Brand.Ink)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    SoftBox(item.body)
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PillButton("결제로 등록", onClick = { onRegisterPayment(item.id) }, modifier = Modifier.weight(1f))
+                        PillButton("취소로 등록", onClick = { onRegisterCancel(item.id) }, style = PillStyle.Secondary, modifier = Modifier.weight(1f))
+                    }
+                    Row {
+                        // 무시: hidden, and the same alert re-posted later stays hidden. 삭제: the text is gone for good.
+                        TextButton(onClick = { onDismiss(item.id) }) { Text("무시", style = BrandText.label, color = Brand.InkMute) }
+                        TextButton(onClick = { onDelete(item.id) }) { Text("삭제", style = BrandText.label, color = Brand.InkMute) }
                     }
                 }
             }
