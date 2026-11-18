@@ -2,6 +2,10 @@ package com.jstensix.cardspending.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
@@ -124,7 +128,16 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container
             }
         },
     ) { padding ->
-        AppNavGraph(nav, container, backupWarning, Modifier.padding(bottom = padding.calculateBottomPadding()))
+        // Side insets (landscape 3-button navigation, display cutouts) for every screen; top/bottom are handled
+        // by BrandTopBar and each screen's bottom bar.
+        AppNavGraph(
+            nav,
+            container,
+            backupWarning,
+            Modifier
+                .padding(bottom = padding.calculateBottomPadding())
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+        )
     }
 }
 
