@@ -104,6 +104,12 @@ class SpendingRepositoryTest {
         assertTrue(repo.observeUnparsed().first().isEmpty())
     }
 
+    @Test fun deleteUnparsed_removesRowCompletely() = runTest {
+        repo.insertUnparsedIfNew(unparsed("h1"))
+        repo.deleteUnparsed(repo.observeUnparsed().first().single().id)
+        assertTrue(repo.snapshot().third.isEmpty())
+    }
+
     @Test fun writes_callOnChanged() = runTest {
         repo.saveCard(Card(issuer = Issuer.HANA, last4 = "0381", nickname = "하나"))
         val id = repo.addManual(tx(LocalDateTime.of(2026, 11, 18, 12, 0), source = TxSource.MANUAL, sourcePackage = null))

@@ -16,6 +16,7 @@ interface UnparsedDao {
     @Query("SELECT * FROM unparsed WHERE dismissed = 0 AND parserVersion < :version") suspend fun pending(version: Int): List<UnparsedNotification>
     @Query("UPDATE unparsed SET parserVersion = :version WHERE id = :id") suspend fun updateVersion(id: Long, version: Int)
     @Query("UPDATE unparsed SET dismissed = 1 WHERE id = :id") suspend fun dismiss(id: Long)
+    @Query("DELETE FROM unparsed WHERE id = :id") suspend fun delete(id: Long)
     @Query("SELECT * FROM unparsed") suspend fun all(): List<UnparsedNotification>
     @Query("DELETE FROM unparsed") suspend fun deleteAll()
     @Insert suspend fun insertAll(items: List<UnparsedNotification>)

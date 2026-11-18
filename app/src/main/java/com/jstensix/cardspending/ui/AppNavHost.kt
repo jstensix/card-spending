@@ -135,6 +135,7 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container
                 onRegisterPayment = { id -> nav.navigate(EntryRoute(unparsedId = id)) },
                 onRegisterCancel = { id -> nav.navigate(EntryRoute(unparsedId = id, cancel = true)) },
                 onDismiss = { id -> scope.launch { container.repository.dismissUnparsed(id) } },
+                onDelete = { id -> scope.launch { container.repository.deleteUnparsed(id) } },
             )
         }
         composable<SetupRoute> { SetupScreen(onBack = { nav.popBackStack() }) }

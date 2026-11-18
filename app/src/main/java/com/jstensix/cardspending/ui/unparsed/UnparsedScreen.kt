@@ -32,6 +32,7 @@ fun UnparsedScreen(
     onRegisterPayment: (Long) -> Unit,
     onRegisterCancel: (Long) -> Unit,
     onDismiss: (Long) -> Unit,
+    onDelete: (Long) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -54,7 +55,11 @@ fun UnparsedScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             TextButton(onClick = { onRegisterPayment(item.id) }) { Text("결제로 등록") }
                             TextButton(onClick = { onRegisterCancel(item.id) }) { Text("취소로 등록") }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // 무시: hidden, but the same alert re-posted later stays hidden. 삭제: the text is gone for good.
                             TextButton(onClick = { onDismiss(item.id) }) { Text("무시") }
+                            TextButton(onClick = { onDelete(item.id) }) { Text("삭제") }
                         }
                     }
                 }

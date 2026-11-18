@@ -92,6 +92,12 @@ class SpendingRepository(private val db: AppDatabase, private val onChanged: () 
         onChanged()
     }
 
+    /** Removes the text entirely (also from the next backup), e.g. something that should never have been captured. */
+    suspend fun deleteUnparsed(id: Long) {
+        unparsedDao.delete(id)
+        onChanged()
+    }
+
     suspend fun isEmpty(): Boolean = cardDao.count() == 0 && txDao.count() == 0
 
     /** Everything, including soft-deleted and dismissed rows: they keep duplicate detection working after a restore. */
