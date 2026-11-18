@@ -1,8 +1,5 @@
 package com.jstensix.cardspending.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -14,12 +11,13 @@ import com.jstensix.cardspending.ui.detail.CardDetailScreen
 import com.jstensix.cardspending.ui.detail.CardDetailViewModel
 import com.jstensix.cardspending.ui.entry.ManualEntryScreen
 import com.jstensix.cardspending.ui.entry.ManualEntryViewModel
+import com.jstensix.cardspending.backup.BackupScheduler
+import com.jstensix.cardspending.ui.settings.SettingsScreen
+import com.jstensix.cardspending.ui.settings.SettingsViewModel
 import com.jstensix.cardspending.ui.setup.SetupScreen
 import com.jstensix.cardspending.ui.unparsed.UnparsedScreen
 import java.time.YearMonth
 import kotlinx.coroutines.launch
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,7 +30,6 @@ import com.jstensix.cardspending.notification.DeviceStatus
 import com.jstensix.cardspending.ui.main.MainScreen
 import com.jstensix.cardspending.ui.main.MainViewModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.serialization.Serializable
 
 // Optional ids use 0 for "none": Room ids start at 1.
@@ -46,7 +43,7 @@ import kotlinx.serialization.Serializable
 @Serializable object SettingsRoute
 
 @Composable
-fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = flowOf(null)) {
+fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container.backupPrefs.observeWarning()) {
     val nav = rememberNavController()
     NavHost(navController = nav, startDestination = MainRoute) {
         composable<MainRoute> {
@@ -141,11 +138,20 @@ fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = flowOf(nu
             )
         }
         composable<SetupRoute> { SetupScreen(onBack = { nav.popBackStack() }) }
-        composable<SettingsRoute> { Placeholder("설정") }
+        composable<SettingsRoute> {
+            val context = LocalContext.current.applicationContext
+            val vm = viewModel {
+                SettingsViewModel(
+                    container.repository,
+                    container.driveClient,
+                    container.backupManager,
+                    container.backupPrefs,
+                    scheduleBackup = { BackupScheduler.request(context) },
+                    cancelBackup = { BackupScheduler.cancel(context) },
+                )
+            }
+            val state by vm.state.collectAsStateWithLifecycle()
+            SettingsScreen(state = state, vm = vm, driveAuth = container.driveAuth, onBack = { nav.popBackStack() })
+        }
     }
-}
-
-@Composable
-private fun Placeholder(title: String) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(title) }
 }
