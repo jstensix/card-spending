@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jstensix.cardspending.data.SpendingRepository
 import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.rules.maskOf
+import com.jstensix.cardspending.rules.owns
+import com.jstensix.cardspending.rules.recognize
 import com.jstensix.cardspending.rules.summarizeMonth
 import java.time.YearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,6 +28,8 @@ data class CardRow(
     val mask: String,
     val payment: Long,
     val recognized: Long,
+    /** Approvals this month on this card that do not count toward 실적. */
+    val excludedCount: Int = 0,
 )
 
 data class MainUiState(
@@ -34,6 +39,8 @@ data class MainUiState(
     val unparsedCount: Int,
     val listenerEnabled: Boolean,
     val backupWarning: String?,
+    val totalPayment: Long = 0,
+    val totalRecognized: Long = 0,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,15 +61,22 @@ class MainViewModel(
         backupWarning,
     ) { (m, data), cards, unparsed, listener, warning ->
         val summary = summarizeMonth(cards, data.transactions, data.originalsById)
+        val rows = summary.cards.map { row ->
+            val excluded = data.transactions.count { tx ->
+                !tx.deleted && tx.kind == TxKind.APPROVAL && row.card.owns(tx) &&
+                    !recognize(tx, row.card, tx.originalId?.let(data.originalsById::get)).recognized
+            }
+            CardRow(row.card.id, row.card.issuer, row.card.nickname, maskOf(row.card.last4), row.payment, row.recognized, excluded)
+        }
         MainUiState(
             month = m,
-            rows = summary.cards.map {
-                CardRow(it.card.id, it.card.issuer, it.card.nickname, maskOf(it.card.last4), it.payment, it.recognized)
-            },
+            rows = rows,
             unregisteredCount = summary.unregisteredCount,
             unparsedCount = unparsed.size,
             listenerEnabled = listener,
             backupWarning = warning,
+            totalPayment = rows.sumOf { it.payment },
+            totalRecognized = rows.sumOf { it.recognized },
         )
     }.stateIn(
         viewModelScope,

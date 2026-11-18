@@ -1,9 +1,38 @@
 package com.jstensix.cardspending.ui
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MailOutline
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
+import com.jstensix.cardspending.R
+import com.jstensix.cardspending.ui.theme.Brand
+import com.jstensix.cardspending.ui.theme.BrandText
+import kotlinx.coroutines.flow.map
 import com.jstensix.cardspending.ui.cards.CardEditScreen
 import com.jstensix.cardspending.ui.cards.CardEditViewModel
 import com.jstensix.cardspending.ui.cards.CardListScreen
@@ -42,10 +71,73 @@ import kotlinx.serialization.Serializable
 @Serializable object SetupRoute
 @Serializable object SettingsRoute
 
+private data class Tab(val route: Any, val label: String, val icon: @Composable () -> Unit)
+
+private val TABS = listOf(
+    Tab(MainRoute, "홈") { Icon(Icons.Outlined.Home, contentDescription = null) },
+    Tab(CardsRoute, "카드") { Icon(painterResource(R.drawable.ic_card), contentDescription = null) },
+    Tab(UnparsedRoute, "알림함") { Icon(Icons.Outlined.MailOutline, contentDescription = null) },
+    Tab(SettingsRoute, "설정") { Icon(Icons.Outlined.Settings, contentDescription = null) },
+)
+
+private fun NavDestination?.isTab(tab: Tab): Boolean = this?.hasRoute(tab.route::class) == true
+
 @Composable
 fun AppNavHost(container: AppContainer, backupWarning: Flow<String?> = container.backupPrefs.observeWarning()) {
     val nav = rememberNavController()
-    NavHost(navController = nav, startDestination = MainRoute) {
+    val backStack by nav.currentBackStackEntryAsState()
+    val destination = backStack?.destination
+    val unparsedCountFlow = remember { container.repository.observeUnparsed().map { it.size } }
+    val unparsedCount by unparsedCountFlow.collectAsStateWithLifecycle(0)
+
+    // Screens draw their own status-bar padding (BrandTopBar) and bottom bars; the navigation bar pads itself.
+    Scaffold(
+        containerColor = Brand.Canvas,
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = {
+            if (TABS.any { destination.isTab(it) }) {
+                Column {
+                    HorizontalDivider(color = Brand.Hairline)
+                    NavigationBar(containerColor = Brand.Canvas, tonalElevation = 0.dp) {
+                        TABS.forEach { tab ->
+                            NavigationBarItem(
+                                selected = destination.isTab(tab),
+                                onClick = {
+                                    nav.navigate(tab.route) {
+                                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = {
+                                    if (tab.route == UnparsedRoute && unparsedCount > 0) {
+                                        BadgedBox(badge = { Badge(containerColor = Brand.Ruby) { Text("$unparsedCount") } }) { tab.icon() }
+                                    } else {
+                                        tab.icon()
+                                    }
+                                },
+                                label = { Text(tab.label, style = BrandText.eyebrow) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = Brand.PrimaryDeep,
+                                    selectedTextColor = Brand.PrimaryDeep,
+                                    indicatorColor = Brand.Subdued,
+                                    unselectedIconColor = Brand.InkMute,
+                                    unselectedTextColor = Brand.InkMute,
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        AppNavGraph(nav, container, backupWarning, Modifier.padding(bottom = padding.calculateBottomPadding()))
+    }
+}
+
+@Composable
+private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupWarning: Flow<String?>, modifier: Modifier) {
+    NavHost(navController = nav, startDestination = MainRoute, modifier = modifier) {
         composable<MainRoute> {
             val context = LocalContext.current
             val vm = viewModel {

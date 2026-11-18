@@ -55,7 +55,18 @@ class MainViewModelTest {
             repo.insertNotificationTx(notificationTx(50000, "국세", LocalDateTime.of(2026, 11, 4, 12, 0)))
         }
         val state = vm().state.await { it.rows.singleOrNull()?.payment == 60000L }
-        assertEquals(CardRow(cardId, Issuer.LOTTE, "텔로", "7*1*", 60000, 10000), state.rows.single())
+        assertEquals(CardRow(cardId, Issuer.LOTTE, "텔로", "7*1*", 60000, 10000, excludedCount = 1), state.rows.single())
+    }
+
+    @Test fun totalsAndExcludedCount() {
+        seedTaxCard()
+        runBlocking {
+            repo.insertNotificationTx(notificationTx(10000, "편의점", LocalDateTime.of(2026, 11, 3, 12, 0)))
+            repo.insertNotificationTx(notificationTx(50000, "국세", LocalDateTime.of(2026, 11, 4, 12, 0)))
+        }
+        val state = vm().state.await { it.totalPayment == 60000L }
+        assertEquals(10000L, state.totalRecognized)
+        assertEquals(1, state.rows.single().excludedCount)
     }
 
     @Test fun previousMonth_switchesData() {
