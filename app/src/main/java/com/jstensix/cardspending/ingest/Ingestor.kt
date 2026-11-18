@@ -14,6 +14,8 @@ import com.jstensix.cardspending.rules.findOriginal
 import com.jstensix.cardspending.rules.isSameTransaction
 import java.security.MessageDigest
 import java.time.LocalDateTime
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 enum class IngestResult { INSERTED, DUPLICATE, UNPARSED, IGNORED }
 
@@ -28,9 +30,17 @@ class Ingestor(
     private val repo: SpendingRepository,
     private val now: () -> LocalDateTime = LocalDateTime::now,
 ) {
+    /**
+     * The Hana app push and the KakaoTalk alert for one payment arrive within milliseconds on separate
+     * coroutines; without serializing check-then-insert both would pass the duplicate check.
+     */
+    private val mutex = Mutex()
+
     suspend fun ingestAll(messages: List<NotificationMessage>): List<IngestResult> = messages.map { ingest(it) }
 
-    suspend fun ingest(message: NotificationMessage): IngestResult =
+    suspend fun ingest(message: NotificationMessage): IngestResult = mutex.withLock { ingestLocked(message) }
+
+    private suspend fun ingestLocked(message: NotificationMessage): IngestResult =
         when (val outcome = CardNotificationParser.parse(message, repo.knownSourcePackages())) {
             is ParseOutcome.Parsed -> store(outcome.tx, message.packageName)
             ParseOutcome.Candidate -> {
@@ -50,7 +60,7 @@ class Ingestor(
         }
 
     /** Re-runs the parsers over stored unrecognized alerts after an app update added new formats. */
-    suspend fun reparsePending(): Int {
+    suspend fun reparsePending(): Int = mutex.withLock {
         var converted = 0
         for (item in repo.pendingUnparsed(PARSER_VERSION)) {
             val message = NotificationMessage(item.packageName, item.title, item.body, item.postedAt)
@@ -62,7 +72,7 @@ class Ingestor(
                 repo.updateUnparsedVersion(item.id, PARSER_VERSION)
             }
         }
-        return converted
+        converted
     }
 
     private suspend fun store(tx: ParsedTransaction, sourcePackage: String): IngestResult {

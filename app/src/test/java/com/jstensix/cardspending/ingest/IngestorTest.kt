@@ -13,7 +13,11 @@ import com.jstensix.cardspending.parsing.NotificationMessage
 import com.jstensix.cardspending.parsing.PARSER_VERSION
 import java.time.LocalDateTime
 import java.time.YearMonth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -94,6 +98,14 @@ class IngestorTest {
         ingestor.ingestAll(listOf(m1))
         ingestor.ingestAll(listOf(m1, m2))
         assertEquals(2, monthTxs().size)
+    }
+
+    @Test fun concurrentDuplicates_insertOnce() = runTest {
+        val results = withContext(Dispatchers.IO) {
+            (1..20).map { i -> async { ingestor.ingest(hana(if (i % 2 == 0) "com.kakao.talk" else "com.hanacard.app")) } }.awaitAll()
+        }
+        assertEquals(1, results.count { it == IngestResult.INSERTED })
+        assertEquals(1, monthTxs().size)
     }
 
     @Test fun reparsePending_convertsAndDismisses() = runTest {
