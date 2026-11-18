@@ -34,7 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.width
 import com.jstensix.cardspending.R
+import android.util.Log
+import com.google.android.gms.common.api.ApiException
 import com.jstensix.cardspending.backup.ConnectStep
+import com.jstensix.cardspending.backup.ConsentResult
 import com.jstensix.cardspending.ui.components.IconTile
 import com.jstensix.cardspending.backup.DriveAuth
 import com.jstensix.cardspending.ui.components.BrandTopBar
@@ -69,8 +72,11 @@ fun SettingsScreen(state: SettingsState, vm: SettingsViewModel, driveAuth: Drive
     var confirmRestore by remember { mutableStateOf(false) }
 
     val consent = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-        val token = activity?.let { driveAuth.tokenFromResult(it, result.data) }
-        if (token != null) vm.onTokenGranted(token) else vm.onConnectFailed(null)
+        when (val outcome = activity?.let { driveAuth.tokenFromResult(it, result.resultCode, result.data) }) {
+            is ConsentResult.Granted -> vm.onTokenGranted(outcome.accessToken)
+            is ConsentResult.Failed -> vm.onConnectFailed(outcome.reason)
+            null -> vm.onConnectFailed(null)
+        }
     }
 
     LaunchedEffect(state.message) {
@@ -110,8 +116,12 @@ fun SettingsScreen(state: SettingsState, vm: SettingsViewModel, driveAuth: Drive
                                                 consent.launch(IntentSenderRequest.Builder(step.pendingIntent.intentSender).build())
                                             is ConnectStep.Granted -> vm.onTokenGranted(step.accessToken)
                                         }
+                                    } catch (e: ApiException) {
+                                        // Play services reports setup problems (e.g. missing OAuth client) as status codes.
+                                        Log.w(DriveAuth.TAG, "authorize() failed: status=${e.statusCode}", e)
+                                        vm.onConnectFailed(DriveAuth.describe(e))
                                     } catch (e: Exception) {
-                                        // Play services reports setup problems (e.g. missing OAuth client) as exceptions.
+                                        Log.w(DriveAuth.TAG, "authorize() failed", e)
                                         vm.onConnectFailed(e.message)
                                     }
                                 }

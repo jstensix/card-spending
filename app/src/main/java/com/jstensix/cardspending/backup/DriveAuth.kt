@@ -4,9 +4,11 @@ import android.accounts.Account
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
 import kotlinx.coroutines.tasks.await
 
@@ -14,12 +16,26 @@ import kotlinx.coroutines.tasks.await
  * Drive access through Google Identity's AuthorizationClient. Only the account email is remembered;
  * access tokens are requested fresh from Play services on every backup.
  */
+sealed interface ConsentResult {
+    data class Granted(val accessToken: String) : ConsentResult
+    data class Failed(val reason: String) : ConsentResult
+}
+
 class DriveAuth(private val context: Context, private val prefs: BackupPrefs) : TokenProvider {
     companion object {
+        const val TAG = "CardSpendingAuth"
+
         val SCOPES = listOf(
             Scope("https://www.googleapis.com/auth/drive.appdata"),
             Scope("https://www.googleapis.com/auth/userinfo.email"),
         )
+
+        /** "DEVELOPER_ERROR (코드 10)" etc.: Google's status name and number, so setup problems can be told apart. */
+        fun describe(e: ApiException, resultCode: Int? = null): String {
+            val name = CommonStatusCodes.getStatusCodeString(e.statusCode)
+            val code = resultCode?.let { ", resultCode $it" }.orEmpty()
+            return "$name (코드 ${e.statusCode}$code)"
+        }
     }
 
     /** Background use: never shows UI, so a needed consent screen means the user must reconnect in Settings. */
@@ -50,9 +66,15 @@ class DriveAuth(private val context: Context, private val prefs: BackupPrefs) : 
         }
     }
 
-    fun tokenFromResult(activity: Activity, data: Intent?): String? = try {
-        Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(data).accessToken
+    /**
+     * Reads the consent screen's result. Failures keep Google's status code: "cancelled" alone hid setup
+     * problems such as a missing/mismatched Android OAuth client (DEVELOPER_ERROR, code 10).
+     */
+    fun tokenFromResult(activity: Activity, resultCode: Int, data: Intent?): ConsentResult = try {
+        val token = Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(data).accessToken
+        if (token != null) ConsentResult.Granted(token) else ConsentResult.Failed("토큰을 받지 못했어요 (resultCode $resultCode)")
     } catch (e: ApiException) {
-        null
+        Log.w(TAG, "authorization failed: status=${e.statusCode} resultCode=$resultCode", e)
+        ConsentResult.Failed(describe(e, resultCode))
     }
 }
