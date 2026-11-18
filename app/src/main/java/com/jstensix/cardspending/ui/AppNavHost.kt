@@ -163,7 +163,6 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
             val cards by container.repository.observeCards().collectAsStateWithLifecycle(emptyList())
             CardListScreen(
                 cards = cards,
-                onBack = { nav.popBackStack() },
                 onEdit = { id -> nav.navigate(CardEditRoute(id)) },
                 onAdd = { nav.navigate(CardEditRoute()) },
             )
