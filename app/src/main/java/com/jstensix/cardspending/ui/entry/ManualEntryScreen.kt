@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -189,12 +190,18 @@ fun ManualEntryScreen(
 
             if (state.cancel) {
                 SectionLabel("원래 결제")
-                OriginalChoice("원래 결제 없음", selected = state.originalId == null) { vm.setOriginal(null) }
+                OriginalChoice(selected = state.originalId == null, onClick = { vm.setOriginal(null) }) {
+                    Text("원래 결제 없음", style = BrandText.label, color = Brand.Ink)
+                }
                 state.originalCandidates.forEach { tx ->
-                    OriginalChoice(
-                        "${tx.approvedAt.format(ORIGINAL_TIME)}  ${tx.merchant}  ${formatWon(tx.amount)}",
-                        selected = state.originalId == tx.id,
-                    ) { vm.setOriginal(tx.id) }
+                    // Only the merchant may shrink: the amount is what tells candidates apart.
+                    OriginalChoice(selected = state.originalId == tx.id, onClick = { vm.setOriginal(tx.id) }) {
+                        Text(tx.approvedAt.format(ORIGINAL_TIME), style = BrandText.caption, color = Brand.InkMute)
+                        Spacer(Modifier.width(8.dp))
+                        Text(tx.merchant, style = BrandText.label, color = Brand.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(8.dp))
+                        Text(formatWon(tx.amount), style = BrandText.amountSmall, color = Brand.Ink)
+                    }
                 }
             }
 
@@ -244,14 +251,9 @@ fun ManualEntryScreen(
 }
 
 @Composable
-private fun OriginalChoice(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun OriginalChoice(selected: Boolean, onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
     val shape = RoundedCornerShape(12.dp)
-    Text(
-        label,
-        style = BrandText.label,
-        color = Brand.Ink,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
@@ -259,5 +261,7 @@ private fun OriginalChoice(label: String, selected: Boolean, onClick: () -> Unit
             .border(if (selected) 2.dp else 1.dp, if (selected) Brand.Primary else Brand.Hairline, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
     )
 }
