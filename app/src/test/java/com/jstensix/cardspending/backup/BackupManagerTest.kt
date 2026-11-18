@@ -8,7 +8,6 @@ import com.jstensix.cardspending.model.Issuer
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.ui.inMemoryDb
 import com.jstensix.cardspending.ui.notificationTx
-import java.io.IOException
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -20,38 +19,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-
-private class FakeDriveApi : DriveApi {
-    val files = mutableListOf<Pair<DriveFile, String>>()
-    var failUpload = false
-    var uploads = 0
-    private var clock = 0
-
-    fun seed(name: String, content: String = "{}") = add(name, content)
-
-    private fun add(name: String, content: String): DriveFile {
-        clock++
-        val file = DriveFile("id$clock", name, String.format("2026-11-%02dT00:00:00Z", clock))
-        files += file to content
-        return file
-    }
-
-    override suspend fun listBackups(token: String) = files.map { it.first }.sortedByDescending { it.createdTime }
-    override suspend fun upload(token: String, name: String, content: String): DriveFile {
-        if (failUpload) throw IOException("network down")
-        uploads++
-        return add(name, content)
-    }
-    override suspend fun download(token: String, fileId: String) = files.first { it.first.id == fileId }.second
-    override suspend fun delete(token: String, fileId: String) {
-        files.removeAll { it.first.id == fileId }
-    }
-    override suspend fun fetchEmail(token: String) = "me@example.com"
-}
-
-private class FakeTokenProvider(var result: TokenResult = TokenResult.Token("t")) : TokenProvider {
-    override suspend fun accessToken() = result
-}
 
 @RunWith(RobolectricTestRunner::class)
 class BackupManagerTest {
@@ -124,5 +91,14 @@ class BackupManagerTest {
 
         assertEquals(listOf("원격"), runBlocking { repo.observeCards().first() }.map { it.nickname })
         assertEquals(10L, runBlocking { repo.getTransaction(11) }?.originalId)
+    }
+
+    @Test fun restoreLatest_corruptBackup_failsWithoutTouchingLocalData() {
+        val badDate = """{"exportedAt":"x","cards":[],"transactions":[{"id":1,"issuer":"LOTTE","kind":"APPROVAL",""" +
+            """"amount":1,"merchant":"m","mask":"7*1*","installment":false,"approvedAt":"not-a-date",""" +
+            """"source":"MANUAL","createdAt":"2026-11-18T00:00"}],"unparsed":[]}"""
+        drive.seed("broken", badDate)
+        assertTrue(runBlocking { manager.restoreLatest() } is BackupResult.Failed)
+        assertEquals(listOf("텔로"), runBlocking { repo.observeCards().first() }.map { it.nickname })
     }
 }

@@ -33,10 +33,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.backup.ConnectStep
 import com.jstensix.cardspending.backup.DriveAuth
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import kotlinx.coroutines.launch
 
 private val BACKUP_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
+/** Drive reports RFC 3339 UTC times. */
+private fun driveTime(value: String): String = try {
+    Instant.parse(value).atZone(ZoneId.systemDefault()).format(BACKUP_TIME)
+} catch (e: DateTimeParseException) {
+    value
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,13 +115,20 @@ fun SettingsScreen(state: SettingsState, vm: SettingsViewModel, driveAuth: Drive
         }
     }
 
-    if (state.showRestorePrompt) {
+    state.remoteChoice?.let { latest ->
         AlertDialog(
-            onDismissRequest = vm::skipRestore,
+            onDismissRequest = vm::cancelConnect,
             title = { Text("드라이브에 백업이 있어요") },
-            text = { Text("복원할까요?") },
-            confirmButton = { TextButton(onClick = vm::restore) { Text("복원") } },
-            dismissButton = { TextButton(onClick = vm::skipRestore) { Text("나중에") } },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("마지막 백업: ${driveTime(latest.createdTime)}")
+                    Text("어느 쪽 데이터를 남길까요? 선택하기 전에는 연결되지 않아요.")
+                    TextButton(onClick = vm::chooseRestore) { Text("드라이브 백업으로 복원 (이 폰의 데이터는 지워져요)") }
+                    TextButton(onClick = vm::chooseOverwrite) { Text("이 폰의 데이터로 덮어쓰기") }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = vm::cancelConnect) { Text("취소") } },
         )
     }
     if (confirmRestore) {
