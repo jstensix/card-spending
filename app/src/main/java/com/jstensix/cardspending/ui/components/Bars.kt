@@ -20,7 +20,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.rules.TierProgress
 import com.jstensix.cardspending.ui.model.compactManwon
-import com.jstensix.cardspending.ui.model.tierLabelVisibility
+import com.jstensix.cardspending.ui.model.tierLabelPositions
 import com.jstensix.cardspending.ui.theme.Brand
 import com.jstensix.cardspending.ui.theme.BrandText
 
@@ -30,7 +30,6 @@ import com.jstensix.cardspending.ui.theme.BrandText
  */
 @Composable
 fun TierBar(progress: TierProgress, modifier: Modifier = Modifier) {
-    val visible = tierLabelVisibility(progress.marks)
     Column(modifier.fillMaxWidth()) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(12.dp)) {
             val width = maxWidth
@@ -62,13 +61,13 @@ fun TierBar(progress: TierProgress, modifier: Modifier = Modifier) {
             }
         }
         Spacer(Modifier.height(4.dp))
-        val shown = progress.tiers.indices.filter { visible[it] }
+        // Every label is measured; tierLabelPositions decides from the real widths which ones fit.
         Layout(
             content = {
-                shown.forEach { index ->
+                progress.tiers.forEachIndexed { index, tier ->
                     val reached = index < progress.achieved
                     Text(
-                        compactManwon(progress.tiers[index].amount) + if (reached) " ✓" else "",
+                        compactManwon(tier.amount) + if (reached) " ✓" else "",
                         style = BrandText.caption,
                         color = if (reached) Brand.PrimaryDeep else Brand.InkMute,
                         maxLines = 1,
@@ -78,11 +77,15 @@ fun TierBar(progress: TierProgress, modifier: Modifier = Modifier) {
         ) { measurables, constraints ->
             val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0)) }
             val width = constraints.maxWidth
+            val positions = tierLabelPositions(
+                centers = progress.marks.map { (it * width).toInt() },
+                widths = placeables.map { it.width },
+                totalWidth = width,
+                gap = 4.dp.roundToPx(),
+            )
             layout(width, placeables.maxOfOrNull { it.height } ?: 0) {
                 placeables.forEachIndexed { i, placeable ->
-                    val center = (progress.marks[shown[i]] * width).toInt()
-                    val x = (center - placeable.width / 2).coerceIn(0, (width - placeable.width).coerceAtLeast(0))
-                    placeable.placeRelative(x, 0)
+                    positions[i]?.let { x -> placeable.placeRelative(x, 0) }
                 }
             }
         }

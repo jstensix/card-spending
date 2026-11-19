@@ -48,21 +48,24 @@ fun tierStatus(progress: TierProgress): String {
 }
 
 /**
- * Which tier labels under a gauge stay visible, given their positions (0..1). A label too close to the previous
- * shown one is hidden; the top tier always keeps its label, and a neighbour crowding it gives way.
+ * Left x of each tier label under a gauge, or null for a label that would collide. Each label is centred under
+ * its mark but kept inside [totalWidth]. The top tier's label is always shown; going left to right, a label is
+ * dropped when it would come closer than [gap] to the previous shown label or to the top label.
  */
-fun tierLabelVisibility(marks: List<Float>, minGap: Float = 0.12f): List<Boolean> {
-    if (marks.isEmpty()) return emptyList()
-    val top = marks.last()
-    var lastShown = Float.NEGATIVE_INFINITY
-    return marks.mapIndexed { index, mark ->
-        when {
-            index == marks.lastIndex -> true
-            mark - lastShown >= minGap && top - mark >= minGap -> {
-                lastShown = mark
-                true
-            }
-            else -> false
+fun tierLabelPositions(centers: List<Int>, widths: List<Int>, totalWidth: Int, gap: Int): List<Int?> {
+    if (centers.isEmpty()) return emptyList()
+    fun clampedX(i: Int) = (centers[i] - widths[i] / 2).coerceIn(0, (totalWidth - widths[i]).coerceAtLeast(0))
+    val last = centers.lastIndex
+    val topX = clampedX(last)
+    var prevRight = Int.MIN_VALUE / 2
+    return centers.indices.map { i ->
+        if (i == last) return@map topX
+        val x = clampedX(i)
+        if (x >= prevRight + gap && x + widths[i] + gap <= topX) {
+            prevRight = x + widths[i]
+            x
+        } else {
+            null
         }
     }
 }

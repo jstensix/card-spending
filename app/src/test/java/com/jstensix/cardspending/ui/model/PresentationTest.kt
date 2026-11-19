@@ -60,17 +60,19 @@ class PresentationTest {
         assertEquals("최고 구간 달성", tierStatus(tierProgress(1_200_000, tiers)!!))
     }
 
-    @Test fun tierLabelVisibility_spacedAllShown() {
-        assertEquals(listOf(true, true, true), tierLabelVisibility(listOf(0.3f, 0.5f, 1f)))
+    // Positions are in px: label centers under each tier mark, measured label widths, gauge width, minimum gap.
+    @Test fun tierLabelPositions_spacedAllShown() {
+        assertEquals(listOf(75, 135, 260), tierLabelPositions(listOf(90, 150, 300), listOf(30, 30, 40), 300, 4))
     }
 
-    @Test fun tierLabelVisibility_closeLabelsHidden() {
-        assertEquals(listOf(true, false, true), tierLabelVisibility(listOf(0.1f, 0.15f, 1f)))
+    // 50만/100만/120만 on a phone: "100만 ✓" would overlap "120만 ✓", which is pushed in to end at the right edge.
+    @Test fun tierLabelPositions_neighbourOfTopHidden() {
+        assertEquals(listOf(102, null, 254), tierLabelPositions(listOf(125, 250, 300), listOf(46, 46, 46), 300, 4))
     }
 
-    // The top tier always keeps its label; a neighbour crowding it gives way.
-    @Test fun tierLabelVisibility_nearTopHidden() {
-        assertEquals(listOf(true, false, true), tierLabelVisibility(listOf(0.3f, 0.95f, 1f)))
+    // 10만/50만 under a 300만 top: the first label is pushed in to start at 0 and crowds the second.
+    @Test fun tierLabelPositions_leftClampedNeighbourHidden() {
+        assertEquals(listOf(0, null, 260), tierLabelPositions(listOf(10, 50, 300), listOf(40, 40, 40), 300, 4))
     }
 
     @Test fun txMeta_notificationApproval() {
