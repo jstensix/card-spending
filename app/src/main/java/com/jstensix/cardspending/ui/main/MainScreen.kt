@@ -28,6 +28,9 @@ import com.jstensix.cardspending.ui.components.MonthSwitcher
 import com.jstensix.cardspending.ui.components.NavySummaryCard
 import com.jstensix.cardspending.ui.components.PillButton
 import com.jstensix.cardspending.ui.components.RatioBar
+import com.jstensix.cardspending.ui.components.TierBar
+import com.jstensix.cardspending.rules.tierProgress
+import com.jstensix.cardspending.ui.model.tierStatus
 import com.jstensix.cardspending.ui.components.StatusTag
 import com.jstensix.cardspending.ui.components.TagKind
 import com.jstensix.cardspending.ui.components.WhiteCard
@@ -118,6 +121,13 @@ private fun CardSummary(row: CardRow, onClick: () -> Unit) {
             Text("/ 결제 ${formatWon(row.payment)}", style = BrandText.caption, color = Brand.InkMute)
         }
         Spacer(Modifier.height(8.dp))
-        RatioBar(recognizedRatio(row.payment, row.recognized), onDark = false)
+        val progress = tierProgress(row.recognized, row.tiers)
+        if (progress == null) {
+            RatioBar(recognizedRatio(row.payment, row.recognized), onDark = false)
+        } else {
+            TierBar(progress)
+            Spacer(Modifier.height(4.dp))
+            Text(tierStatus(progress), style = BrandText.caption, color = if (progress.next == null) Brand.PrimaryDeep else Brand.InkMute)
+        }
     }
 }

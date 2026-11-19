@@ -5,6 +5,7 @@ import com.jstensix.cardspending.data.SpendingRepository
 import com.jstensix.cardspending.model.Card
 import com.jstensix.cardspending.model.ExclusionItem
 import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Tier
 import com.jstensix.cardspending.model.UnparsedNotification
 import com.jstensix.cardspending.ui.await
 import com.jstensix.cardspending.ui.inMemoryDb
@@ -46,6 +47,12 @@ class MainViewModelTest {
 
     private fun seedTaxCard(): Long = runBlocking {
         repo.saveCard(Card(issuer = Issuer.LOTTE, last4 = "7512", nickname = "텔로", exclusions = setOf(ExclusionItem.TAX)))
+    }
+
+    @Test fun row_carriesCardTiers() {
+        val tiers = listOf(Tier(300000, "통신"), Tier(500000, "커피"))
+        runBlocking { repo.saveCard(Card(issuer = Issuer.LOTTE, last4 = "7512", nickname = "텔로", tiers = tiers)) }
+        assertEquals(tiers, vm().state.await { it.rows.isNotEmpty() }.rows.single().tiers)
     }
 
     @Test fun rows_showMonthTotals() {

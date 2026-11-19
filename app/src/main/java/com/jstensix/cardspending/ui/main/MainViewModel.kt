@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jstensix.cardspending.data.SpendingRepository
 import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Tier
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.rules.maskOf
 import com.jstensix.cardspending.rules.owns
@@ -30,6 +31,8 @@ data class CardRow(
     val recognized: Long,
     /** Approvals this month on this card that do not count toward 실적. */
     val excludedCount: Int = 0,
+    /** The card's 실적 구간; empty keeps the plain recognized-share gauge. */
+    val tiers: List<Tier> = emptyList(),
 )
 
 data class MainUiState(
@@ -68,7 +71,7 @@ class MainViewModel(
                 !tx.deleted && tx.kind == TxKind.APPROVAL && row.card.owns(tx) &&
                     !recognize(tx, row.card, tx.originalId?.let(data.originalsById::get)).recognized
             }
-            CardRow(row.card.id, row.card.issuer, row.card.nickname, maskOf(row.card.last4), row.payment, row.recognized, excluded)
+            CardRow(row.card.id, row.card.issuer, row.card.nickname, maskOf(row.card.last4), row.payment, row.recognized, excluded, row.card.tiers)
         }
         MainUiState(
             month = m,

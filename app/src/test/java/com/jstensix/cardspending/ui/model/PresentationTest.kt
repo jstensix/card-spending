@@ -60,6 +60,19 @@ class PresentationTest {
         assertEquals("최고 구간 달성", tierStatus(tierProgress(1_200_000, tiers)!!))
     }
 
+    @Test fun tierLabelVisibility_spacedAllShown() {
+        assertEquals(listOf(true, true, true), tierLabelVisibility(listOf(0.3f, 0.5f, 1f)))
+    }
+
+    @Test fun tierLabelVisibility_closeLabelsHidden() {
+        assertEquals(listOf(true, false, true), tierLabelVisibility(listOf(0.1f, 0.15f, 1f)))
+    }
+
+    // The top tier always keeps its label; a neighbour crowding it gives way.
+    @Test fun tierLabelVisibility_nearTopHidden() {
+        assertEquals(listOf(true, false, true), tierLabelVisibility(listOf(0.3f, 0.95f, 1f)))
+    }
+
     @Test fun txMeta_notificationApproval() {
         val tx = Transaction(
             issuer = Issuer.LOTTE, kind = TxKind.APPROVAL, amount = 5600, merchant = "카페", mask = "7*1*",

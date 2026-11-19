@@ -44,6 +44,9 @@ import com.jstensix.cardspending.ui.formatWon
 import com.jstensix.cardspending.ui.model.dayLabel
 import com.jstensix.cardspending.ui.model.recognizedRatio
 import com.jstensix.cardspending.ui.model.txMeta
+import com.jstensix.cardspending.ui.model.compactManwon
+import com.jstensix.cardspending.rules.TierProgress
+import com.jstensix.cardspending.rules.tierProgress
 import com.jstensix.cardspending.ui.theme.Brand
 import com.jstensix.cardspending.ui.theme.BrandText
 
@@ -78,6 +81,9 @@ fun CardDetailScreen(
                     amountStyle = BrandText.amountLarge,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
+            }
+            state.card?.let { tierProgress(state.recognized, it.tiers) }?.let { progress ->
+                item(key = "tiers") { TierList(progress) }
             }
             if (state.days.isEmpty()) {
                 item {
@@ -127,6 +133,33 @@ fun CardDetailScreen(
                     selected = null
                 },
             )
+        }
+    }
+}
+
+/** The card's 실적 구간 with their benefits; the next tier to reach shows how much is left. */
+@Composable
+private fun TierList(progress: TierProgress) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        SectionLabel("실적 구간")
+        progress.tiers.forEachIndexed { index, tier ->
+            val reached = index < progress.achieved
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Text(if (reached) "✓" else "○", style = BrandText.body, color = if (reached) Brand.Primary else Brand.InkMute)
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "${compactManwon(tier.amount)}원",
+                    style = BrandText.body,
+                    color = if (reached) Brand.Ink else Brand.InkMute,
+                    modifier = Modifier.width(72.dp),
+                )
+                Column(Modifier.weight(1f)) {
+                    if (tier.benefit.isNotBlank()) Text(tier.benefit, style = BrandText.body, color = Brand.Ink)
+                    if (tier == progress.next) {
+                        Text("${formatWon(progress.remaining ?: 0)} 남음", style = BrandText.caption, color = Brand.Primary)
+                    }
+                }
+            }
         }
     }
 }

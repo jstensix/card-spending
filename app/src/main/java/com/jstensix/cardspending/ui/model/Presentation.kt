@@ -47,6 +47,26 @@ fun tierStatus(progress: TierProgress): String {
     return "${compactManwon(progress.tiers[progress.achieved - 1].amount)} 구간 달성 · $toNext"
 }
 
+/**
+ * Which tier labels under a gauge stay visible, given their positions (0..1). A label too close to the previous
+ * shown one is hidden; the top tier always keeps its label, and a neighbour crowding it gives way.
+ */
+fun tierLabelVisibility(marks: List<Float>, minGap: Float = 0.12f): List<Boolean> {
+    if (marks.isEmpty()) return emptyList()
+    val top = marks.last()
+    var lastShown = Float.NEGATIVE_INFINITY
+    return marks.mapIndexed { index, mark ->
+        when {
+            index == marks.lastIndex -> true
+            mark - lastShown >= minGap && top - mark >= minGap -> {
+                lastShown = mark
+                true
+            }
+            else -> false
+        }
+    }
+}
+
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
