@@ -1,6 +1,7 @@
 package com.jstensix.cardspending.parsing
 
 import com.jstensix.cardspending.model.Card
+import com.jstensix.cardspending.rules.isValidLast4
 import com.jstensix.cardspending.rules.maskOf
 
 /** Bump whenever a parser changes, so stored unrecognized notifications get parsed again. */
@@ -48,8 +49,13 @@ object CardNotificationParser {
         return namesRegisteredCard("$title\n${message.body}", cards)
     }
 
-    /** The masked number (7*1*) or the plain last 4 digits, not as part of a longer number such as 17,419원. */
-    private fun namesRegisteredCard(text: String, cards: List<Card>): Boolean = cards.any { card ->
-        maskOf(card.last4) in text || Regex("""(?<![\d,])${Regex.escape(card.last4)}(?![\d,])""").containsMatchIn(text)
-    }
+    /**
+     * The masked number (7*1*) or the plain last 4 digits, not inside a longer digit run such as 174190.
+     * Only digits bound the match: a comma-grouped amount like 17,419 never contains the 4-digit run, while
+     * "(일시불,0381)" must still match. Cards with a malformed last4 (e.g. from a hand-edited backup) are skipped.
+     */
+    private fun namesRegisteredCard(text: String, cards: List<Card>): Boolean =
+        cards.filter { isValidLast4(it.last4) }.any { card ->
+            maskOf(card.last4) in text || Regex("""(?<!\d)${card.last4}(?!\d)""").containsMatchIn(text)
+        }
 }

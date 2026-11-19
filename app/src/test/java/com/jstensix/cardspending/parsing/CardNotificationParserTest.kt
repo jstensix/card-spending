@@ -65,6 +65,18 @@ class CardNotificationParserTest {
         assertEquals(ParseOutcome.Ignored, outcome(m("x", null, "주문번호 174190")))
     }
 
+    // Only digits bound the last 4; "7,419" never contains "7419", so a comma must not block a real match.
+    @Test fun last4AfterComma_candidate() {
+        assertEquals(ParseOutcome.Candidate, outcome(m("x", null, "신용(일시불,0381) 9,900원")))
+    }
+
+    // A card restored from a hand-edited backup must not crash notification handling.
+    @Test fun invalidLast4Card_skipped() {
+        val withBroken = cards + Card(id = 3, issuer = Issuer.LOTTE, last4 = "74", nickname = "깨짐")
+        assertEquals(ParseOutcome.Candidate, outcome(m("x", null, "카드(0*8*) 12,000원"), withBroken))
+        assertEquals(ParseOutcome.Ignored, outcome(m("x", null, "알림 74"), withBroken))
+    }
+
     @Test fun noCards_unknownTextIgnored() {
         assertEquals(ParseOutcome.Ignored, outcome(m("x", null, "카드(0*8*) 12,000원"), emptyList()))
     }
