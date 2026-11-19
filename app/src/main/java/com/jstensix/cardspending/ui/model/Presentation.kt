@@ -3,9 +3,12 @@ package com.jstensix.cardspending.ui.model
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
+import com.jstensix.cardspending.rules.TierProgress
+import com.jstensix.cardspending.ui.formatWon
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /** Share of the payment that counts toward 실적. No ratio for months whose payments net to zero or below. */
 fun recognizedRatio(payment: Long, recognized: Long): Float? {
@@ -27,6 +30,22 @@ private val WEEKDAY = mapOf(
 )
 
 fun dayLabel(date: LocalDate): String = "${date.monthValue}월 ${date.dayOfMonth}일 (${WEEKDAY.getValue(date.dayOfWeek)})"
+
+/** Short tier label in 만 원: 300,000 → 30만, 125,000 → 12.5만, 15,000,000 → 1,500만. */
+fun compactManwon(amount: Long): String =
+    if (amount % 10_000 == 0L) {
+        String.format(Locale.US, "%,d만", amount / 10_000)
+    } else {
+        String.format(Locale.US, "%,.1f만", amount / 10_000.0)
+    }
+
+/** One line under a card's tier gauge. Remaining amounts stay exact: they say how much more to spend. */
+fun tierStatus(progress: TierProgress): String {
+    val next = progress.next ?: return "최고 구간 달성"
+    val toNext = "${compactManwon(next.amount)}까지 ${formatWon(progress.remaining ?: 0)} 남음"
+    if (progress.achieved == 0) return toNext
+    return "${compactManwon(progress.tiers[progress.achieved - 1].amount)} 구간 달성 · $toNext"
+}
 
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 

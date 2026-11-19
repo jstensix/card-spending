@@ -1,9 +1,11 @@
 package com.jstensix.cardspending.ui.model
 
 import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Tier
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
+import com.jstensix.cardspending.rules.tierProgress
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
@@ -42,6 +44,20 @@ class PresentationTest {
         assertEquals(listOf(d18, d17), groups.map { it.date })
         assertEquals(listOf("a", "b"), groups[0].items.map { it.first })
         assertEquals("11월 17일 (화)", groups[1].label)
+    }
+
+    @Test fun compactManwon_formats() {
+        assertEquals("30만", compactManwon(300_000))
+        assertEquals("100만", compactManwon(1_000_000))
+        assertEquals("12.5만", compactManwon(125_000))
+        assertEquals("1,500만", compactManwon(15_000_000))
+    }
+
+    @Test fun tierStatus_texts() {
+        val tiers = listOf(Tier(300_000), Tier(500_000), Tier(1_000_000))
+        assertEquals("30만까지 180,000원 남음", tierStatus(tierProgress(120_000, tiers)!!))
+        assertEquals("50만 구간 달성 · 100만까지 380,000원 남음", tierStatus(tierProgress(620_000, tiers)!!))
+        assertEquals("최고 구간 달성", tierStatus(tierProgress(1_200_000, tiers)!!))
     }
 
     @Test fun txMeta_notificationApproval() {
