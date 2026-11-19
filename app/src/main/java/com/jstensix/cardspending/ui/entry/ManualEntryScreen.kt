@@ -108,6 +108,11 @@ fun ManualEntryScreen(
     onSave: () -> Unit,
     onBack: () -> Unit,
 ) {
+    // Edit mode: wait for the saved payment, so the typed-text fields below start out filled with it.
+    if (!state.loaded) {
+        Column(Modifier.fillMaxSize().background(Brand.Canvas)) { BrandTopBar("결제 수정", onBack = onBack) }
+        return
+    }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     // Typed text lives here, not in vm.state: the ViewModel re-queries the DB on every change, so its state
@@ -116,7 +121,12 @@ fun ManualEntryScreen(
     var merchant by rememberSaveable { mutableStateOf(state.merchant) }
 
     Column(Modifier.fillMaxSize().background(Brand.Canvas).imePadding()) {
-        BrandTopBar(if (state.cancel) "취소 직접 추가" else "결제 직접 추가", onBack = onBack)
+        val title = when {
+            state.editing -> "결제 수정"
+            state.cancel -> "취소 직접 추가"
+            else -> "결제 직접 추가"
+        }
+        BrandTopBar(title, onBack = onBack)
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         ) {

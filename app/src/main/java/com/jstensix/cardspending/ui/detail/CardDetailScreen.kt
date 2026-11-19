@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jstensix.cardspending.model.TxSource
 import com.jstensix.cardspending.ui.components.BounceTextButton
 import com.jstensix.cardspending.ui.components.bounceClickable
 import com.jstensix.cardspending.ui.components.BrandTopBar
@@ -59,6 +60,7 @@ fun CardDetailScreen(
     onBack: () -> Unit,
     onSetRecognition: (txId: Long, value: Boolean?) -> Unit,
     onDelete: (txId: Long) -> Unit,
+    onEdit: (txId: Long) -> Unit,
     onAddPayment: () -> Unit,
     onAddCancel: () -> Unit,
 ) {
@@ -112,6 +114,14 @@ fun CardDetailScreen(
                     onSetRecognition(item.tx.id, value)
                     selected = null
                 },
+                onEdit = if (item.tx.source == TxSource.MANUAL) {
+                    {
+                        selected = null
+                        onEdit(item.tx.id)
+                    }
+                } else {
+                    null
+                },
                 onDelete = {
                     onDelete(item.tx.id)
                     selected = null
@@ -142,7 +152,8 @@ private fun TxRow(item: TxItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TxSheet(item: TxItem, onSetRecognition: (Boolean?) -> Unit, onDelete: () -> Unit) {
+/** [onEdit] is null for alert payments: only hand-entered ones can be edited. */
+private fun TxSheet(item: TxItem, onSetRecognition: (Boolean?) -> Unit, onEdit: (() -> Unit)?, onDelete: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
         Text(item.tx.merchant, style = BrandText.title, color = Brand.Ink)
         Text(
@@ -162,6 +173,10 @@ private fun TxSheet(item: TxItem, onSetRecognition: (Boolean?) -> Unit, onDelete
         item.tx.rawText?.let {
             SectionLabel("알림 원문")
             SoftBox(it)
+        }
+        if (onEdit != null) {
+            Spacer(Modifier.height(16.dp))
+            PillButton("수정", onClick = onEdit, style = PillStyle.Secondary, modifier = Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(8.dp))
         BounceTextButton(onClick = onDelete) { Text("이 결제 삭제", style = BrandText.label, color = Brand.InkMute) }

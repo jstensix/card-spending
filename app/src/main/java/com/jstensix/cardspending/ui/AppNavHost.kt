@@ -75,7 +75,8 @@ import kotlinx.serialization.Serializable
 @Serializable object CardsRoute
 @Serializable data class CardEditRoute(val cardId: Long = 0)
 @Serializable data class CardDetailRoute(val cardId: Long, val month: String)
-@Serializable data class EntryRoute(val cardId: Long = 0, val unparsedId: Long = 0, val cancel: Boolean = false)
+/** [txId] != 0 opens a saved hand-entered payment for editing. */
+@Serializable data class EntryRoute(val cardId: Long = 0, val unparsedId: Long = 0, val cancel: Boolean = false, val txId: Long = 0)
 @Serializable object UnparsedRoute
 @Serializable object SetupRoute
 @Serializable object SettingsRoute
@@ -245,6 +246,7 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
                 onBack = { nav.popBackStack() },
                 onSetRecognition = { id, value -> scope.launch { vm.setRecognition(id, value) } },
                 onDelete = { id -> scope.launch { vm.delete(id) } },
+                onEdit = { id -> nav.navigate(EntryRoute(txId = id)) },
                 onAddPayment = { nav.navigate(EntryRoute(cardId = route.cardId)) },
                 onAddCancel = { nav.navigate(EntryRoute(cardId = route.cardId, cancel = true)) },
             )
@@ -257,6 +259,7 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
                     route.cardId.takeIf { it != 0L },
                     route.unparsedId.takeIf { it != 0L },
                     route.cancel,
+                    route.txId.takeIf { it != 0L },
                 )
             }
             val state by vm.state.collectAsStateWithLifecycle()
