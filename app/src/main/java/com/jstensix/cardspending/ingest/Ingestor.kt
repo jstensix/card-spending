@@ -15,6 +15,7 @@ import com.jstensix.cardspending.rules.isSameTransaction
 import java.security.MessageDigest
 import java.time.Duration
 import java.time.LocalDateTime
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -42,7 +43,7 @@ class Ingestor(
     suspend fun ingest(message: NotificationMessage): IngestResult = mutex.withLock { ingestLocked(message) }
 
     private suspend fun ingestLocked(message: NotificationMessage): IngestResult =
-        when (val outcome = CardNotificationParser.parse(message, repo.knownSourcePackages())) {
+        when (val outcome = CardNotificationParser.parse(message, repo.observeCards().first())) {
             is ParseOutcome.Parsed -> store(outcome.tx, message.packageName)
             ParseOutcome.Candidate -> {
                 repo.insertUnparsedIfNew(
@@ -65,7 +66,7 @@ class Ingestor(
         var converted = 0
         for (item in repo.pendingUnparsed(PARSER_VERSION)) {
             val message = NotificationMessage(item.packageName, item.title, item.body, item.postedAt)
-            val outcome = CardNotificationParser.parse(message, repo.knownSourcePackages())
+            val outcome = CardNotificationParser.parse(message, repo.observeCards().first())
             if (outcome is ParseOutcome.Parsed) {
                 if (store(outcome.tx, item.packageName) == IngestResult.INSERTED) converted++
                 repo.dismissUnparsed(item.id)
