@@ -13,21 +13,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.model.ExclusionItem
 import com.jstensix.cardspending.model.Issuer
 import com.jstensix.cardspending.rules.isValidLast4
 import com.jstensix.cardspending.rules.maskOf
+import com.jstensix.cardspending.ui.components.BounceIconButton
 import com.jstensix.cardspending.ui.components.BounceTextButton
 import com.jstensix.cardspending.ui.components.BrandTextField
 import com.jstensix.cardspending.ui.components.BrandTopBar
@@ -35,7 +41,9 @@ import com.jstensix.cardspending.ui.components.DigitBoxes
 import com.jstensix.cardspending.ui.components.LogoChoiceCard
 import com.jstensix.cardspending.ui.components.PillButton
 import com.jstensix.cardspending.ui.components.PillChip
+import com.jstensix.cardspending.ui.components.PillStyle
 import com.jstensix.cardspending.ui.components.SectionLabel
+import com.jstensix.cardspending.ui.components.ThousandsSeparator
 import com.jstensix.cardspending.ui.theme.Brand
 import com.jstensix.cardspending.ui.theme.BrandText
 
@@ -48,6 +56,10 @@ fun CardEditScreen(
     onLast4: (String) -> Unit,
     onNickname: (String) -> Unit,
     onToggle: (ExclusionItem) -> Unit,
+    onAddTier: () -> Unit,
+    onRemoveTier: (index: Int) -> Unit,
+    onTierAmount: (index: Int, text: String) -> Unit,
+    onTierBenefit: (index: Int, text: String) -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
     onBack: () -> Unit,
@@ -94,6 +106,39 @@ fun CardEditScreen(
                 ExclusionItem.entries.forEach { item ->
                     PillChip(item.label, selected = item in state.exclusions, onClick = { onToggle(item) })
                 }
+            }
+
+            SectionLabel("실적 구간")
+            Text("최대 ${MAX_TIERS}개 · 홈 화면 게이지에 구간별로 표시돼요", style = BrandText.caption, color = Brand.InkMute)
+            state.tiers.forEachIndexed { index, tier ->
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BrandTextField(
+                        tier.amountText,
+                        { onTierAmount(index, it) },
+                        label = "금액(원)",
+                        modifier = Modifier.weight(0.42f),
+                        keyboardType = KeyboardType.Number,
+                        visualTransformation = ThousandsSeparator,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    BrandTextField(tier.benefit, { onTierBenefit(index, it) }, label = "혜택", modifier = Modifier.weight(0.58f))
+                    BounceIconButton(onClick = { onRemoveTier(index) }) {
+                        Icon(Icons.Outlined.Close, contentDescription = "구간 삭제", tint = Brand.InkMute)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            PillButton(
+                "+ 구간 추가",
+                onClick = onAddTier,
+                style = PillStyle.Secondary,
+                enabled = state.tiers.size < MAX_TIERS,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            state.tierWarning?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(it, style = BrandText.caption, color = Brand.Ruby)
             }
             Spacer(Modifier.height(24.dp))
         }

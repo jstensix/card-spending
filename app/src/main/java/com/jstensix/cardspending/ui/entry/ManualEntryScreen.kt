@@ -46,14 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TransformedText
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jstensix.cardspending.R
+import com.jstensix.cardspending.ui.components.ThousandsSeparator
 import com.jstensix.cardspending.ui.components.BounceTextButton
 import com.jstensix.cardspending.ui.components.bounce
 import com.jstensix.cardspending.ui.components.BrandIcon
@@ -78,27 +75,6 @@ import java.time.format.DateTimeFormatter
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 private val ORIGINAL_TIME = DateTimeFormatter.ofPattern("MM/dd HH:mm")
 
-/** Shows "12000" as "12,000" while the field keeps raw digits. */
-private object ThousandsSeparator : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val digits = text.text
-        val out = StringBuilder()
-        val toOut = IntArray(digits.length + 1)
-        digits.forEachIndexed { index, c ->
-            toOut[index] = out.length
-            out.append(c)
-            val remaining = digits.length - index - 1
-            if (remaining > 0 && remaining % 3 == 0) out.append(',')
-        }
-        toOut[digits.length] = out.length
-        val mapping = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int) = toOut[offset.coerceIn(0, digits.length)]
-            override fun transformedToOriginal(offset: Int): Int =
-                (0..digits.length).lastOrNull { toOut[it] <= offset } ?: 0
-        }
-        return TransformedText(AnnotatedString(out.toString()), mapping)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

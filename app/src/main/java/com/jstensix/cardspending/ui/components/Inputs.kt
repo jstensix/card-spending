@@ -17,7 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jstensix.cardspending.ui.theme.Brand
@@ -65,6 +69,28 @@ fun DigitBoxes(
     )
 }
 
+/** Shows "12000" as "12,000" while the field keeps raw digits. */
+object ThousandsSeparator : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val digits = text.text
+        val out = StringBuilder()
+        val toOut = IntArray(digits.length + 1)
+        digits.forEachIndexed { index, c ->
+            toOut[index] = out.length
+            out.append(c)
+            val remaining = digits.length - index - 1
+            if (remaining > 0 && remaining % 3 == 0) out.append(',')
+        }
+        toOut[digits.length] = out.length
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int) = toOut[offset.coerceIn(0, digits.length)]
+            override fun transformedToOriginal(offset: Int): Int =
+                (0..digits.length).lastOrNull { toOut[it] <= offset } ?: 0
+        }
+        return TransformedText(AnnotatedString(out.toString()), mapping)
+    }
+}
+
 /** text-input: 6dp, hairline-input border that turns indigo on focus. */
 @Composable
 fun BrandTextField(
@@ -73,6 +99,7 @@ fun BrandTextField(
     label: String,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     OutlinedTextField(
         value = value,
@@ -81,6 +108,7 @@ fun BrandTextField(
         singleLine = true,
         textStyle = BrandText.body.copy(color = Brand.Ink),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        visualTransformation = visualTransformation,
         shape = RoundedCornerShape(6.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Brand.Primary,
