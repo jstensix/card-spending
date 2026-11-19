@@ -1,7 +1,11 @@
 package com.jstensix.cardspending.ui.model
 
+import com.jstensix.cardspending.model.Transaction
+import com.jstensix.cardspending.model.TxKind
+import com.jstensix.cardspending.model.TxSource
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /** Share of the payment that counts toward 실적. No ratio for months whose payments net to zero or below. */
 fun recognizedRatio(payment: Long, recognized: Long): Float? {
@@ -23,6 +27,19 @@ private val WEEKDAY = mapOf(
 )
 
 fun dayLabel(date: LocalDate): String = "${date.monthValue}월 ${date.dayOfMonth}일 (${WEEKDAY.getValue(date.dayOfWeek)})"
+
+private val TIME = DateTimeFormatter.ofPattern("HH:mm")
+
+/**
+ * Secondary line for a payment: time, 일시불/할부, cancel mark, and how it was first recorded.
+ * A hand-entered payment later matched by its alert holds the alert's data, so it reads 자동.
+ */
+fun txMeta(tx: Transaction): String = buildString {
+    append(tx.approvedAt.format(TIME))
+    append(if (tx.installment) " · 할부" else " · 일시불")
+    if (tx.kind == TxKind.CANCEL) append(" · 취소")
+    append(if (tx.source == TxSource.NOTIFICATION) " · 자동" else " · 직접 입력")
+}
 
 data class DayGroup<T>(val date: LocalDate, val label: String, val items: List<T>)
 

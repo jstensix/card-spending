@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.ui.components.BounceTextButton
 import com.jstensix.cardspending.ui.components.bounceClickable
 import com.jstensix.cardspending.ui.components.BrandTopBar
@@ -43,22 +42,14 @@ import com.jstensix.cardspending.ui.components.TagKind
 import com.jstensix.cardspending.ui.formatWon
 import com.jstensix.cardspending.ui.model.dayLabel
 import com.jstensix.cardspending.ui.model.recognizedRatio
+import com.jstensix.cardspending.ui.model.txMeta
 import com.jstensix.cardspending.ui.theme.Brand
 import com.jstensix.cardspending.ui.theme.BrandText
-import java.time.format.DateTimeFormatter
-
-private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 
 private fun TxItem.tagKind(): TagKind = when {
     label.startsWith("직접 지정") -> TagKind.Manual
     !recognized -> TagKind.Excluded
     else -> TagKind.Neutral
-}
-
-private fun TxItem.meta(): String = buildString {
-    append(tx.approvedAt.format(TIME))
-    append(if (tx.installment) " · 할부" else " · 일시불")
-    if (tx.kind == TxKind.CANCEL) append(" · 취소")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,7 +129,7 @@ private fun TxRow(item: TxItem, onClick: () -> Unit) {
     ) {
         Column(Modifier.weight(1f)) {
             Text(item.tx.merchant, style = BrandText.body, color = Brand.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(item.meta(), style = BrandText.caption, color = Brand.InkMute)
+            Text(txMeta(item.tx), style = BrandText.caption, color = Brand.InkMute)
         }
         Spacer(Modifier.width(12.dp))
         Column(horizontalAlignment = Alignment.End) {
@@ -155,7 +146,7 @@ private fun TxSheet(item: TxItem, onSetRecognition: (Boolean?) -> Unit, onDelete
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
         Text(item.tx.merchant, style = BrandText.title, color = Brand.Ink)
         Text(
-            "${dayLabel(item.tx.approvedAt.toLocalDate())} ${item.meta()} · ${formatWon(item.signedAmount)}",
+            "${dayLabel(item.tx.approvedAt.toLocalDate())} ${txMeta(item.tx)} · ${formatWon(item.signedAmount)}",
             style = BrandText.caption,
             color = Brand.InkMute,
         )

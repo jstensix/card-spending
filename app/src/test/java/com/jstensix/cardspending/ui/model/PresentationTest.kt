@@ -1,6 +1,11 @@
 package com.jstensix.cardspending.ui.model
 
+import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Transaction
+import com.jstensix.cardspending.model.TxKind
+import com.jstensix.cardspending.model.TxSource
 import java.time.LocalDate
+import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -37,5 +42,23 @@ class PresentationTest {
         assertEquals(listOf(d18, d17), groups.map { it.date })
         assertEquals(listOf("a", "b"), groups[0].items.map { it.first })
         assertEquals("11월 17일 (화)", groups[1].label)
+    }
+
+    @Test fun txMeta_notificationApproval() {
+        val tx = Transaction(
+            issuer = Issuer.LOTTE, kind = TxKind.APPROVAL, amount = 5600, merchant = "카페", mask = "7*1*",
+            installment = false, approvedAt = LocalDateTime.of(2026, 11, 18, 14, 32), source = TxSource.NOTIFICATION,
+            createdAt = LocalDateTime.of(2026, 11, 18, 14, 32),
+        )
+        assertEquals("14:32 · 일시불 · 자동", txMeta(tx))
+    }
+
+    @Test fun txMeta_manualInstallmentCancel() {
+        val tx = Transaction(
+            issuer = Issuer.HANA, kind = TxKind.CANCEL, amount = 3000, merchant = "마트", mask = "0*8*",
+            installment = true, approvedAt = LocalDateTime.of(2026, 11, 18, 9, 5), source = TxSource.MANUAL,
+            createdAt = LocalDateTime.of(2026, 11, 18, 9, 5),
+        )
+        assertEquals("09:05 · 할부 · 취소 · 직접 입력", txMeta(tx))
     }
 }
