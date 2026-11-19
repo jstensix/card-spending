@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -36,6 +37,10 @@ data class EntryState(
     /** A same-day payment of the same amount already exists on this card (e.g. it also arrived as a notification). */
     val duplicateWarning: String? = null,
     val canSave: Boolean = false,
+    /** Editing a saved hand-entered payment instead of adding one. */
+    val editing: Boolean = false,
+    /** False while an edited payment is still being read; the screen waits so its fields start filled. */
+    val loaded: Boolean = true,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -44,20 +49,32 @@ class ManualEntryViewModel(
     cardId: Long?,
     private val unparsedId: Long?,
     cancel: Boolean,
+    private val txId: Long? = null,
     private val now: () -> LocalDateTime = LocalDateTime::now,
 ) : ViewModel() {
     private val form = MutableStateFlow(
         now().let { start ->
-            EntryState(cardId = cardId, cancel = cancel, date = start.toLocalDate(), time = start.toLocalTime().withSecond(0).withNano(0))
+            EntryState(
+                cardId = cardId,
+                cancel = cancel,
+                date = start.toLocalDate(),
+                time = start.toLocalTime().withSecond(0).withNano(0),
+                editing = txId != null,
+                loaded = txId == null,
+            )
         },
     )
+
+    /** The saved row being edited; its id, origin and creation time carry over on save. */
+    private var editingTx: Transaction? = null
 
     val state: StateFlow<EntryState> = combine(form, repo.observeCards()) { f, cards -> f.copy(cards = cards) }
         .mapLatest { f ->
             val card = f.selectedCard()
             val amount = f.amount()
             val candidates = if (f.cancel && card != null && amount != null) {
-                repo.approvalsForCancel(card.issuer, maskOf(card.last4), f.approvedAt(), amount)
+                // An approval being edited into a cancel cannot cancel itself.
+                repo.approvalsForCancel(card.issuer, maskOf(card.last4), f.approvedAt(), amount).filter { it.id != txId }
             } else {
                 emptyList()
             }
@@ -79,6 +96,31 @@ class ManualEntryViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, form.value)
 
     init {
+        if (txId != null) {
+            viewModelScope.launch {
+                val tx = repo.getTransaction(txId)
+                editingTx = tx
+                if (tx == null) {
+                    form.update { it.copy(loaded = true) }
+                    return@launch
+                }
+                // Payments store the card as issuer + mask; a deleted card leaves the choice to the user.
+                val card = repo.observeCards().first().firstOrNull { it.issuer == tx.issuer && maskOf(it.last4) == tx.mask }
+                form.update {
+                    it.copy(
+                        cardId = card?.id,
+                        cancel = tx.kind == TxKind.CANCEL,
+                        amountText = tx.amount.toString(),
+                        merchant = tx.merchant,
+                        date = tx.approvedAt.toLocalDate(),
+                        time = tx.approvedAt.toLocalTime().withSecond(0).withNano(0),
+                        installment = tx.installment,
+                        originalId = tx.originalId,
+                        loaded = true,
+                    )
+                }
+            }
+        }
         if (unparsedId != null) {
             viewModelScope.launch {
                 repo.getUnparsed(unparsedId)?.let { item ->
@@ -108,6 +150,21 @@ class ManualEntryViewModel(
         val card = f.cardId?.let { repo.getCard(it) } ?: return false
         val amount = f.amount() ?: return false
         if (f.merchant.isBlank()) return false
+        if (txId != null) {
+            val original = editingTx ?: return false
+            return repo.updateManual(
+                original.copy(
+                    issuer = card.issuer,
+                    kind = if (f.cancel) TxKind.CANCEL else TxKind.APPROVAL,
+                    amount = amount,
+                    merchant = f.merchant.trim(),
+                    mask = maskOf(card.last4),
+                    installment = f.installment,
+                    approvedAt = f.approvedAt(),
+                    originalId = if (f.cancel) f.originalId else null,
+                ),
+            )
+        }
         repo.addManual(
             Transaction(
                 issuer = card.issuer,

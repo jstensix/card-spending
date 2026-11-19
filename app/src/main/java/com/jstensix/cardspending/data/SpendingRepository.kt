@@ -52,6 +52,19 @@ class SpendingRepository(private val db: AppDatabase, private val onChanged: () 
 
     suspend fun addManual(tx: Transaction): Long = txDao.insert(tx).also { onChanged() }
 
+    /**
+     * Saves an edit of a hand-entered payment. Notification rows are refused: their stored card, amount and time
+     * are what duplicate detection compares a re-posted alert against. Keeps the row's origin, creation time and
+     * 인정/미인정 override whatever [tx] carries.
+     */
+    suspend fun updateManual(tx: Transaction): Boolean {
+        val stored = txDao.get(tx.id) ?: return false
+        if (stored.source != TxSource.MANUAL || stored.deleted) return false
+        txDao.update(tx.copy(source = TxSource.MANUAL, createdAt = stored.createdAt, manualRecognition = stored.manualRecognition))
+        onChanged()
+        return true
+    }
+
     suspend fun setManualRecognition(txId: Long, value: Boolean?) {
         txDao.setManual(txId, value)
         onChanged()

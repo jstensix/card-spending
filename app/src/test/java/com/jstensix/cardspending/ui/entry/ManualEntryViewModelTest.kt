@@ -4,6 +4,7 @@ import com.jstensix.cardspending.data.AppDatabase
 import com.jstensix.cardspending.data.SpendingRepository
 import com.jstensix.cardspending.model.Card
 import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
 import com.jstensix.cardspending.model.UnparsedNotification
@@ -128,5 +129,101 @@ class ManualEntryViewModelTest {
         viewModel.setMerchant("")
         assertFalse(viewModel.state.await { it.amountText == "1000" && it.merchant.isEmpty() }.canSave)
         assertFalse(runBlocking { viewModel.save() })
+    }
+
+    // Edit mode is opened from a payment's sheet: no card or cancel preset, only the payment id.
+    private fun editVm(txId: Long) = ManualEntryViewModel(repo, null, null, false, txId) { now }
+
+    private fun manualTx(
+        amount: Long,
+        merchant: String,
+        at: LocalDateTime,
+        mask: String = "7*1*",
+        issuer: Issuer = Issuer.LOTTE,
+        kind: TxKind = TxKind.APPROVAL,
+        installment: Boolean = false,
+        originalId: Long? = null,
+        manualRecognition: Boolean? = null,
+    ): Long = runBlocking {
+        repo.addManual(
+            Transaction(
+                issuer = issuer, kind = kind, amount = amount, merchant = merchant, mask = mask, installment = installment,
+                approvedAt = at, source = TxSource.MANUAL, originalId = originalId, manualRecognition = manualRecognition,
+                createdAt = at.plusMinutes(1),
+            ),
+        )
+    }
+
+    private fun stored(id: Long) = runBlocking { repo.getTransaction(id) }!!
+
+    @Test fun edit_prefillsAllFields() {
+        val id = manualTx(12000, "식당", LocalDateTime.of(2026, 11, 10, 19, 30), installment = true)
+        val state = editVm(id).state.await { it.loaded }
+        assertTrue(state.editing)
+        assertEquals(cardId, state.cardId)
+        assertEquals("12000", state.amountText)
+        assertEquals("식당", state.merchant)
+        assertEquals(LocalDate.of(2026, 11, 10), state.date)
+        assertEquals(LocalTime.of(19, 30), state.time)
+        assertTrue(state.installment)
+        assertFalse(state.cancel)
+    }
+
+    @Test fun edit_save_updatesSameRowKeepingIdCreatedAtAndRecognition() {
+        val at = LocalDateTime.of(2026, 11, 10, 19, 30)
+        val id = manualTx(12000, "식당", at, manualRecognition = false)
+        val viewModel = editVm(id)
+        viewModel.state.await { it.loaded }
+        viewModel.setAmount("15000")
+        viewModel.setMerchant("식당2")
+        viewModel.state.await { it.canSave && it.amountText == "15000" && it.merchant == "식당2" }
+        assertTrue(runBlocking { viewModel.save() })
+        val tx = savedNovember().single()
+        assertEquals(id, tx.id)
+        assertEquals(15000L, tx.amount)
+        assertEquals("식당2", tx.merchant)
+        assertEquals(false, tx.manualRecognition)
+        assertEquals(at.plusMinutes(1), tx.createdAt)
+        assertEquals(TxSource.MANUAL, tx.source)
+    }
+
+    @Test fun edit_cancelToApproval_clearsOriginal() {
+        val approvalId = runBlocking { repo.insertNotificationTx(notificationTx(30000, "마트", LocalDateTime.of(2026, 11, 9, 12, 0))) }
+        val id = manualTx(5000, "마트", LocalDateTime.of(2026, 11, 10, 12, 0), kind = TxKind.CANCEL, originalId = approvalId)
+        val viewModel = editVm(id)
+        assertEquals(approvalId, viewModel.state.await { it.loaded }.originalId)
+        viewModel.setCancel(false)
+        viewModel.state.await { !it.cancel && it.canSave }
+        assertTrue(runBlocking { viewModel.save() })
+        assertEquals(TxKind.APPROVAL, stored(id).kind)
+        assertEquals(null, stored(id).originalId)
+    }
+
+    @Test fun edit_excludesSelfFromOriginalCandidates() {
+        val otherId = runBlocking { repo.insertNotificationTx(notificationTx(30000, "마트", LocalDateTime.of(2026, 11, 9, 12, 0))) }
+        val id = manualTx(20000, "마트", LocalDateTime.of(2026, 11, 10, 12, 0))
+        val viewModel = editVm(id)
+        viewModel.state.await { it.loaded }
+        viewModel.setCancel(true)
+        val ids = viewModel.state.await { it.cancel && it.originalCandidates.isNotEmpty() }.originalCandidates.map { it.id }
+        assertTrue(otherId in ids)
+        assertFalse(id in ids)
+    }
+
+    @Test fun edit_notificationTx_refusesSave() {
+        val id = runBlocking { repo.insertNotificationTx(notificationTx(11000, "편의점", LocalDateTime.of(2026, 11, 10, 12, 0))) }
+        val viewModel = editVm(id)
+        viewModel.state.await { it.loaded }
+        viewModel.setAmount("1")
+        viewModel.state.await { it.amountText == "1" }
+        assertFalse(runBlocking { viewModel.save() })
+        assertEquals(11000L, stored(id).amount)
+    }
+
+    @Test fun edit_cardGone_leavesCardEmpty() {
+        val id = manualTx(8000, "서점", LocalDateTime.of(2026, 11, 10, 12, 0), mask = "0*8*", issuer = Issuer.HANA)
+        val state = editVm(id).state.await { it.loaded }
+        assertEquals(null, state.cardId)
+        assertFalse(state.canSave)
     }
 }
