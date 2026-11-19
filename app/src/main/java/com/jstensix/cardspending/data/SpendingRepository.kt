@@ -95,8 +95,6 @@ class SpendingRepository(private val db: AppDatabase, private val onChanged: () 
         onChanged()
     }
 
-    suspend fun knownSourcePackages(): Set<String> = txDao.sourcePackages().toSet()
-
     fun observeUnparsed(): Flow<List<UnparsedNotification>> = unparsedDao.observeVisible()
     suspend fun getUnparsed(id: Long): UnparsedNotification? = unparsedDao.get(id)
 

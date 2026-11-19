@@ -51,9 +51,6 @@ interface TransactionDao {
 
     @Update suspend fun update(tx: Transaction)
 
-    @Query("SELECT DISTINCT sourcePackage FROM transactions WHERE sourcePackage IS NOT NULL")
-    suspend fun sourcePackages(): List<String>
-
     @Query("SELECT COUNT(*) FROM transactions") suspend fun count(): Int
     @Query("SELECT * FROM transactions") suspend fun all(): List<Transaction>
     @Query("DELETE FROM transactions") suspend fun deleteAll()

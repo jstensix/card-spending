@@ -123,11 +123,4 @@ class SpendingRepositoryTest {
         repo.setManualRecognition(id, true)
         assertEquals(3, changes)
     }
-
-    @Test fun knownSourcePackages_distinct() = runTest {
-        repo.insertNotificationTx(tx(LocalDateTime.of(2026, 11, 1, 12, 0), sourcePackage = "a"))
-        repo.insertNotificationTx(tx(LocalDateTime.of(2026, 11, 2, 12, 0), sourcePackage = "a"))
-        repo.insertNotificationTx(tx(LocalDateTime.of(2026, 11, 3, 12, 0), sourcePackage = "b"))
-        assertEquals(setOf("a", "b"), repo.knownSourcePackages())
-    }
 }

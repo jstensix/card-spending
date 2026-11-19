@@ -4,6 +4,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.jstensix.cardspending.data.AppDatabase
 import com.jstensix.cardspending.data.SpendingRepository
+import com.jstensix.cardspending.model.Card
 import com.jstensix.cardspending.model.Issuer
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
@@ -20,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -43,6 +45,11 @@ class IngestorTest {
             .allowMainThreadQueries().build()
         repo = SpendingRepository(db) {}
         ingestor = Ingestor(repo) { posted }
+        // Unrecognized alerts are kept only when they name a registered card: Lotte 7*1*, Hana 0*8*.
+        runBlocking {
+            repo.saveCard(Card(issuer = Issuer.LOTTE, last4 = "7419", nickname = "텔로"))
+            repo.saveCard(Card(issuer = Issuer.HANA, last4 = "0381", nickname = "심플"))
+        }
     }
 
     @After fun tearDown() = db.close()
@@ -82,7 +89,7 @@ class IngestorTest {
     }
 
     @Test fun unknownCardFormat_storedOnceAsUnparsed() = runTest {
-        val message = NotificationMessage("com.kakao.talk", "하나카드", "[하나카드] 홍*동님 9,900원 승인", posted)
+        val message = NotificationMessage("com.kakao.talk", "하나카드", "[하나카드] 홍*동님 9,900원 승인 0*8*", posted)
         assertEquals(listOf(IngestResult.UNPARSED, IngestResult.UNPARSED), ingestor.ingestAll(listOf(message, message)))
         val rows = repo.observeUnparsed().first()
         assertEquals(1, rows.size)
@@ -139,12 +146,20 @@ class IngestorTest {
         assertEquals(1, monthTxs().size)
     }
 
-    @Test fun reparsePending_convertsAndDismisses() = runTest {
+    @Test fun issuerMentionInOtherApp_notStored() = runTest {
+        val message = NotificationMessage("com.pickle.client", "잭슨", "롯데카드 있으시면 12,000원 할인", posted)
+        assertEquals(IngestResult.IGNORED, ingestor.ingest(message))
+        assertTrue(repo.snapshot().third.isEmpty())
+    }
+
+    // Alerts stored under the old rule are re-checked: parsed ones become payments, junk is removed.
+    @Test fun reparsePending_deletesNoLongerCandidates() = runTest {
         fun row(hash: String, body: String) = UnparsedNotification(
             contentHash = hash, packageName = "com.kakao.talk", title = "롯데카드", body = body, postedAt = posted, parserVersion = 0,
         )
         repo.insertUnparsedIfNew(row("a", LOTTE_SAMPLE))
-        repo.insertUnparsedIfNew(row("b", "롯데카드 알 수 없는 문구"))
+        repo.insertUnparsedIfNew(row("b", "롯데카드 알 수 없는 문구 7*1*"))
+        repo.insertUnparsedIfNew(row("c", "롯데카드 이번 달 혜택"))
 
         assertEquals(1, ingestor.reparsePending())
 
@@ -152,5 +167,6 @@ class IngestorTest {
         val visible = repo.observeUnparsed().first()
         assertEquals(listOf("b"), visible.map { it.contentHash })
         assertEquals(PARSER_VERSION, visible.single().parserVersion)
+        assertTrue(repo.snapshot().third.none { it.contentHash == "c" })
     }
 }

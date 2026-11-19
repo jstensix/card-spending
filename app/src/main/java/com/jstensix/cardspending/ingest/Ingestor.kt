@@ -61,17 +61,22 @@ class Ingestor(
             ParseOutcome.Ignored -> IngestResult.IGNORED
         }
 
-    /** Re-runs the parsers over stored unrecognized alerts after an app update added new formats. */
+    /**
+     * Re-runs the parsers over stored unrecognized alerts after an app update changed them: newly understood
+     * alerts become payments, and ones the current rules would not keep (ads, other apps) are removed.
+     */
     suspend fun reparsePending(): Int = mutex.withLock {
         var converted = 0
+        val cards = repo.observeCards().first()
         for (item in repo.pendingUnparsed(PARSER_VERSION)) {
             val message = NotificationMessage(item.packageName, item.title, item.body, item.postedAt)
-            val outcome = CardNotificationParser.parse(message, repo.observeCards().first())
-            if (outcome is ParseOutcome.Parsed) {
-                if (store(outcome.tx, item.packageName) == IngestResult.INSERTED) converted++
-                repo.dismissUnparsed(item.id)
-            } else {
-                repo.updateUnparsedVersion(item.id, PARSER_VERSION)
+            when (val outcome = CardNotificationParser.parse(message, cards)) {
+                is ParseOutcome.Parsed -> {
+                    if (store(outcome.tx, item.packageName) == IngestResult.INSERTED) converted++
+                    repo.dismissUnparsed(item.id)
+                }
+                ParseOutcome.Candidate -> repo.updateUnparsedVersion(item.id, PARSER_VERSION)
+                ParseOutcome.Ignored -> repo.deleteUnparsed(item.id)
             }
         }
         converted
