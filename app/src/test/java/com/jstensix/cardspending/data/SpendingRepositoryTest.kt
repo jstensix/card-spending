@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.jstensix.cardspending.model.Card
 import com.jstensix.cardspending.model.ExclusionItem
 import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Tier
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
@@ -58,6 +59,12 @@ class SpendingRepositoryTest {
         val id = repo.saveCard(Card(issuer = Issuer.LOTTE, last4 = "7512", nickname = "텔로", exclusions = setOf(ExclusionItem.TAX, ExclusionItem.INSTALLMENT)))
         assertEquals(setOf(ExclusionItem.TAX, ExclusionItem.INSTALLMENT), repo.getCard(id)?.exclusions)
         assertEquals(listOf("텔로"), repo.observeCards().first().map { it.nickname })
+    }
+
+    @Test fun saveCard_persistsTiers() = runTest {
+        val tiers = listOf(Tier(300000, "통신"), Tier(500000, ""))
+        val id = repo.saveCard(Card(issuer = Issuer.LOTTE, last4 = "7512", nickname = "텔로", tiers = tiers))
+        assertEquals(tiers, repo.getCard(id)?.tiers)
     }
 
     @Test fun monthRange_includesLastMinute_excludesNextMonth() = runTest {

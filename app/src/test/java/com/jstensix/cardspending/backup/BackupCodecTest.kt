@@ -3,6 +3,7 @@ package com.jstensix.cardspending.backup
 import com.jstensix.cardspending.model.Card
 import com.jstensix.cardspending.model.ExclusionItem
 import com.jstensix.cardspending.model.Issuer
+import com.jstensix.cardspending.model.Tier
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
@@ -37,6 +38,18 @@ class BackupCodecTest {
 
     @Test fun unknownField_ignored() {
         val json = BackupCodec.encode(data).replaceFirst("{", "{\"futureField\":1,")
+        assertEquals(data, BackupCodec.decode(json))
+    }
+
+    @Test fun roundTrip_preservesTiers() {
+        val withTiers = data.copy(cards = data.cards.map { it.copy(tiers = listOf(Tier(300000, "통신비 5천원"))) })
+        assertEquals(withTiers, BackupCodec.decode(BackupCodec.encode(withTiers)))
+    }
+
+    // Backups written before tiers existed have no "tiers" key.
+    @Test fun oldBackupWithoutTiers_decodesEmptyTiers() {
+        val json = BackupCodec.encode(data).replace(",\"tiers\":[]", "")
+        assertFalse(json.contains("\"tiers\""))
         assertEquals(data, BackupCodec.decode(json))
     }
 
