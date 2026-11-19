@@ -1,5 +1,6 @@
 package com.jstensix.cardspending.ui.entry
 
+import androidx.lifecycle.SavedStateHandle
 import com.jstensix.cardspending.data.AppDatabase
 import com.jstensix.cardspending.data.SpendingRepository
 import com.jstensix.cardspending.model.Card
@@ -218,6 +219,30 @@ class ManualEntryViewModelTest {
         viewModel.state.await { it.amountText == "1" }
         assertFalse(runBlocking { viewModel.save() })
         assertEquals(11000L, stored(id).amount)
+    }
+
+    @Test fun typedText_isKeptInSavedState() {
+        val saved = SavedStateHandle()
+        val viewModel = ManualEntryViewModel(repo, cardId, null, false, null, saved) { now }
+        viewModel.setAmount("9900")
+        viewModel.setMerchant("식당")
+        assertEquals("9900", saved.get<String>("amountText"))
+        assertEquals("식당", saved.get<String>("merchant"))
+    }
+
+    // Android killed the app mid-edit: the screen restores what was typed, so the ViewModel must save that,
+    // not the stored row it re-reads.
+    @Test fun edit_afterProcessDeath_restoredTextWinsOverStoredRow() {
+        val id = manualTx(12000, "식당", LocalDateTime.of(2026, 11, 10, 19, 30))
+        val saved = SavedStateHandle(mapOf("amountText" to "15000", "merchant" to "식당2"))
+        val viewModel = ManualEntryViewModel(repo, null, null, false, id, saved) { now }
+        val state = viewModel.state.await { it.loaded }
+        assertEquals("15000", state.amountText)
+        assertEquals("식당2", state.merchant)
+        viewModel.state.await { it.canSave }
+        assertTrue(runBlocking { viewModel.save() })
+        assertEquals(15000L, stored(id).amount)
+        assertEquals("식당2", stored(id).merchant)
     }
 
     @Test fun edit_cardGone_leavesCardEmpty() {

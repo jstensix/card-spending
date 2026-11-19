@@ -58,6 +58,7 @@ import java.time.YearMonth
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -260,6 +261,7 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
                     route.unparsedId.takeIf { it != 0L },
                     route.cancel,
                     route.txId.takeIf { it != 0L },
+                    createSavedStateHandle(),
                 )
             }
             val state by vm.state.collectAsStateWithLifecycle()

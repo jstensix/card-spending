@@ -1,5 +1,6 @@
 package com.jstensix.cardspending.ui.entry
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jstensix.cardspending.data.SpendingRepository
@@ -50,6 +51,11 @@ class ManualEntryViewModel(
     private val unparsedId: Long?,
     cancel: Boolean,
     private val txId: Long? = null,
+    /**
+     * Holds the typed amount and merchant across process death. The screen restores its own copy of the text, so
+     * without this an edit would show the user's changes but save the stored row it re-read.
+     */
+    private val savedState: SavedStateHandle = SavedStateHandle(),
     private val now: () -> LocalDateTime = LocalDateTime::now,
 ) : ViewModel() {
     private val form = MutableStateFlow(
@@ -57,6 +63,8 @@ class ManualEntryViewModel(
             EntryState(
                 cardId = cardId,
                 cancel = cancel,
+                amountText = savedState[KEY_AMOUNT] ?: "",
+                merchant = savedState[KEY_MERCHANT] ?: "",
                 date = start.toLocalDate(),
                 time = start.toLocalTime().withSecond(0).withNano(0),
                 editing = txId != null,
@@ -110,8 +118,8 @@ class ManualEntryViewModel(
                     it.copy(
                         cardId = card?.id,
                         cancel = tx.kind == TxKind.CANCEL,
-                        amountText = tx.amount.toString(),
-                        merchant = tx.merchant,
+                        amountText = savedState[KEY_AMOUNT] ?: tx.amount.toString(),
+                        merchant = savedState[KEY_MERCHANT] ?: tx.merchant,
                         date = tx.approvedAt.toLocalDate(),
                         time = tx.approvedAt.toLocalTime().withSecond(0).withNano(0),
                         installment = tx.installment,
@@ -138,8 +146,16 @@ class ManualEntryViewModel(
 
     fun setCard(id: Long) = form.update { it.copy(cardId = id, originalId = null) }
     fun setCancel(value: Boolean) = form.update { it.copy(cancel = value, originalId = null) }
-    fun setAmount(text: String) = form.update { it.copy(amountText = text.filter(Char::isDigit)) }
-    fun setMerchant(value: String) = form.update { it.copy(merchant = value) }
+    fun setAmount(text: String) {
+        val digits = text.filter(Char::isDigit)
+        savedState[KEY_AMOUNT] = digits
+        form.update { it.copy(amountText = digits) }
+    }
+
+    fun setMerchant(value: String) {
+        savedState[KEY_MERCHANT] = value
+        form.update { it.copy(merchant = value) }
+    }
     fun setDate(value: LocalDate) = form.update { it.copy(date = value) }
     fun setTime(value: LocalTime) = form.update { it.copy(time = value) }
     fun setInstallment(value: Boolean) = form.update { it.copy(installment = value) }
@@ -187,3 +203,6 @@ class ManualEntryViewModel(
     private fun EntryState.amount(): Long? = amountText.toLongOrNull()?.takeIf { it > 0 }
     private fun EntryState.approvedAt(): LocalDateTime = date.atTime(time.withSecond(0).withNano(0))
 }
+
+private const val KEY_AMOUNT = "amountText"
+private const val KEY_MERCHANT = "merchant"
