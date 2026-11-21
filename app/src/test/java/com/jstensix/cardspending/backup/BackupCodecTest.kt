@@ -46,6 +46,18 @@ class BackupCodecTest {
         assertEquals(withTiers, BackupCodec.decode(BackupCodec.encode(withTiers)))
     }
 
+    @Test fun roundTrip_preservesSortOrder() {
+        val ordered = data.copy(cards = data.cards.map { it.copy(sortOrder = 3) })
+        assertEquals(ordered, BackupCodec.decode(BackupCodec.encode(ordered)))
+    }
+
+    // Backups written before card order existed have no "sortOrder" key: they restore in registration order.
+    @Test fun oldBackupWithoutSortOrder_decodesZero() {
+        val json = BackupCodec.encode(data).replace(",\"sortOrder\":0", "")
+        assertFalse(json.contains("\"sortOrder\""))
+        assertEquals(data, BackupCodec.decode(json))
+    }
+
     // Backups written before tiers existed have no "tiers" key.
     @Test fun oldBackupWithoutTiers_decodesEmptyTiers() {
         val json = BackupCodec.encode(data).replace(",\"tiers\":[]", "")

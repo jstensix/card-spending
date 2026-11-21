@@ -25,10 +25,24 @@ class SpendingRepository(private val db: AppDatabase, private val onChanged: () 
     fun observeCards(): Flow<List<Card>> = cardDao.observeAll()
     suspend fun getCard(id: Long): Card? = cardDao.get(id)
 
+    /** A new card joins at the bottom; an edited card keeps its stored place whatever [card] carries. */
     suspend fun saveCard(card: Card): Long {
-        val id = if (card.id == 0L) cardDao.insert(card) else card.id.also { cardDao.update(card) }
+        val id = db.withTransaction {
+            if (card.id == 0L) {
+                cardDao.insert(card.copy(sortOrder = (cardDao.maxSortOrder() ?: -1) + 1))
+            } else {
+                val order = cardDao.get(card.id)?.sortOrder ?: card.sortOrder
+                card.id.also { cardDao.update(card.copy(sortOrder = order)) }
+            }
+        }
         onChanged()
         return id
+    }
+
+    /** Stores the order the user dragged the cards into: the first id goes on top. */
+    suspend fun reorderCards(idsInOrder: List<Long>) {
+        db.withTransaction { idsInOrder.forEachIndexed { index, id -> cardDao.setSortOrder(id, index) } }
+        onChanged()
     }
 
     /** Transactions stay: registering a matching card later picks them up again. */

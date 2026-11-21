@@ -15,4 +15,6 @@ data class Card(
     val exclusions: Set<ExclusionItem> = emptySet(),
     /** Ascending by amount, at most 5. The default matches the column default added by MIGRATION_1_2. */
     @ColumnInfo(defaultValue = "[]") val tiers: List<Tier> = emptyList(),
+    /** Position in every card list, ascending; ties fall back to id. Kept by SpendingRepository, not by edit screens. */
+    @ColumnInfo(defaultValue = "0") val sortOrder: Int = 0,
 )

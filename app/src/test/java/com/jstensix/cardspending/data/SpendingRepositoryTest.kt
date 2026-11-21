@@ -67,6 +67,33 @@ class SpendingRepositoryTest {
         assertEquals(tiers, repo.getCard(id)?.tiers)
     }
 
+    private suspend fun saveThree(): List<Long> = listOf("7512" to "A", "0381" to "B", "1234" to "C").map { (last4, name) ->
+        repo.saveCard(Card(issuer = Issuer.LOTTE, last4 = last4, nickname = name))
+    }
+
+    @Test fun reorderCards_changesObservedOrder() = runTest {
+        val (a, b, c) = saveThree()
+        repo.reorderCards(listOf(c, a, b))
+        assertEquals(listOf(c, a, b), repo.observeCards().first().map { it.id })
+    }
+
+    @Test fun newCard_goesToBottom() = runTest {
+        val (a, b, c) = saveThree()
+        repo.reorderCards(listOf(c, a, b))
+        val d = repo.saveCard(Card(issuer = Issuer.HANA, last4 = "5678", nickname = "D"))
+        assertEquals(listOf(c, a, b, d), repo.observeCards().first().map { it.id })
+    }
+
+    // The edit screen builds a fresh Card without knowing its order (sortOrder = 0): saving must not move it.
+    @Test fun editingCard_keepsPlace() = runTest {
+        val (a, b, c) = saveThree()
+        repo.reorderCards(listOf(c, a, b))
+        repo.saveCard(Card(id = a, issuer = Issuer.LOTTE, last4 = "7512", nickname = "새이름"))
+        val cards = repo.observeCards().first()
+        assertEquals(listOf(c, a, b), cards.map { it.id })
+        assertEquals("새이름", cards[1].nickname)
+    }
+
     @Test fun monthRange_includesLastMinute_excludesNextMonth() = runTest {
         repo.insertNotificationTx(tx(LocalDateTime.of(2026, 11, 30, 23, 59)))
         repo.insertNotificationTx(tx(LocalDateTime.of(2026, 12, 1, 0, 0)))
@@ -121,6 +148,7 @@ class SpendingRepositoryTest {
         repo.saveCard(Card(issuer = Issuer.HANA, last4 = "0381", nickname = "하나"))
         val id = repo.addManual(tx(LocalDateTime.of(2026, 11, 18, 12, 0), source = TxSource.MANUAL, sourcePackage = null))
         repo.setManualRecognition(id, true)
-        assertEquals(3, changes)
+        repo.reorderCards(listOf(1))
+        assertEquals(4, changes)
     }
 }

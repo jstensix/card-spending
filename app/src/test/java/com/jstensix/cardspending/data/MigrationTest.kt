@@ -50,10 +50,7 @@ class MigrationTest {
             db.version = 1
         }
 
-        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
-            .addMigrations(AppDatabase.MIGRATION_1_2)
-            .allowMainThreadQueries()
-            .build()
+        val room = openRoom()
         try {
             val card = runBlocking { room.cardDao().get(1) }!!
             assertEquals("텔로", card.nickname)
@@ -64,4 +61,32 @@ class MigrationTest {
             room.close()
         }
     }
+
+    // Version 2 showed cards by id; after the upgrade the stored order must be that same order.
+    @Test fun migration2to3_keepsRegistrationOrder() {
+        context.deleteDatabase(name)
+        SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath(name).apply { parentFile?.mkdirs() }, null).use { db ->
+            v1Schema.forEach(db::execSQL)
+            db.execSQL("INSERT INTO cards (issuer, last4, nickname, exclusions) VALUES ('LOTTE', '7512', '텔로', '')")
+            db.execSQL("INSERT INTO cards (issuer, last4, nickname, exclusions) VALUES ('HANA', '0381', '심플', '')")
+            db.execSQL(
+                "INSERT INTO transactions (issuer, kind, amount, merchant, mask, installment, approvedAt, source, deleted, createdAt) " +
+                    "VALUES ('LOTTE', 'APPROVAL', 11000, '편의점', '7*1*', 0, '2026-11-18T10:54', 'MANUAL', 0, '2026-11-18T10:54')",
+            )
+            db.version = 1
+        }
+
+        val room = openRoom()
+        try {
+            assertEquals(listOf(1L to 1, 2L to 2), runBlocking { room.cardDao().all() }.map { it.id to it.sortOrder })
+            assertEquals(1, runBlocking { room.transactionDao().count() })
+        } finally {
+            room.close()
+        }
+    }
+
+    private fun openRoom(): AppDatabase = Room.databaseBuilder(context, AppDatabase::class.java, name)
+        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+        .allowMainThreadQueries()
+        .build()
 }

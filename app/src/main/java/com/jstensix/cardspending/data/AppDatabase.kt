@@ -11,7 +11,7 @@ import com.jstensix.cardspending.model.Card
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.UnparsedNotification
 
-@Database(entities = [Card::class, Transaction::class, UnparsedNotification::class], version = 2, exportSchema = true)
+@Database(entities = [Card::class, Transaction::class, UnparsedNotification::class], version = 3, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
@@ -26,7 +26,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** 3: cards gain a user-chosen order. Seeded from id so the upgrade shows cards exactly as before. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE cards ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE cards SET sortOrder = id")
+            }
+        }
+
         fun create(context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, "cardspending.db").addMigrations(MIGRATION_1_2).build()
+            Room.databaseBuilder(context, AppDatabase::class.java, "cardspending.db")
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .build()
     }
 }
