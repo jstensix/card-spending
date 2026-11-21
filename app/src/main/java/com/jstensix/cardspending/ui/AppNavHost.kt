@@ -218,6 +218,8 @@ private fun AppNavGraph(nav: NavHostController, container: AppContainer, backupW
                 cards = cards,
                 onEdit = { id -> nav.navigate(CardEditRoute(id)) },
                 onAdd = { nav.navigate(CardEditRoute()) },
+                // App scope: leaving the tab right after a drop must not cancel the save.
+                onReorder = { ids -> container.appScope.launch { container.repository.reorderCards(ids) } },
             )
         }
         composable<CardEditRoute> { entry ->
