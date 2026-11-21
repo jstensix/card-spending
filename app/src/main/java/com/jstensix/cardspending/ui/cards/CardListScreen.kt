@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +53,12 @@ fun CardListScreen(cards: List<Card>, onEdit: (Long) -> Unit, onAdd: () -> Unit,
     val haptics = LocalHapticFeedback.current
     // What the screen shows while dragging; reset whenever the stored list changes.
     var shown by remember(cards) { mutableStateOf(cards) }
+    // The drag handle keeps the callback from when its gesture detector started, so a second drag of the same card
+    // would otherwise compare and save a stale list. Reading through this always sees the newest shown/cards.
+    val saveShownOrder by rememberUpdatedState {
+        val ids = shown.map { it.id }
+        if (ids != cards.map { it.id }) onReorder(ids)
+    }
     val listState = rememberLazyListState()
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
         val fromIndex = shown.indexOfFirst { it.id == from.key }
@@ -86,10 +93,7 @@ fun CardListScreen(cards: List<Card>, onEdit: (Long) -> Unit, onAdd: () -> Unit,
                             .shadow(lift, LiftShape)
                             .longPressDraggableHandle(
                                 onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) },
-                                onDragStopped = {
-                                    val ids = shown.map { it.id }
-                                    if (ids != cards.map { it.id }) onReorder(ids)
-                                },
+                                onDragStopped = { saveShownOrder() },
                             ),
                         // Releasing a long press without moving must not also open the edit screen.
                         onClick = { if (!isDragging) onEdit(card.id) },
