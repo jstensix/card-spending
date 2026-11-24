@@ -103,6 +103,13 @@ class SpendingRepository(private val db: AppDatabase, private val onChanged: () 
     suspend fun findSameDay(source: TxSource, issuer: Issuer, mask: String, amount: Long, kind: TxKind, day: LocalDate): List<Transaction> =
         txDao.findInRange(source, issuer, mask, amount, kind, day.atStartOfDay(), day.plusDays(1).atStartOfDay())
 
+    /**
+     * Notification rows on the same card, amount and kind during [day], including ones the user deleted: a deleted
+     * payment must keep blocking its copy from the other channel, as [findSameKey] does for re-posts.
+     */
+    suspend fun findSameDayNotifications(issuer: Issuer, mask: String, amount: Long, kind: TxKind, day: LocalDate): List<Transaction> =
+        txDao.notificationsInRange(issuer, mask, amount, kind, day.atStartOfDay(), day.plusDays(1).atStartOfDay())
+
     /** Replaces a hand-entered row with the real notification data, keeping its id so cancels linked to it stay linked. */
     suspend fun upgradeManual(tx: Transaction) {
         txDao.update(tx)

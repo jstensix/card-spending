@@ -90,7 +90,7 @@ class Ingestor(
         // One payment can arrive both as a push and as an SMS. The SMS has no time of its own, so across
         // channels the same card, amount and day is the same payment; within a channel the exact time decides.
         val channel = channelOf(sourcePackage)
-        val sameDay = repo.findSameDay(TxSource.NOTIFICATION, tx.issuer, tx.mask, tx.amount, tx.kind, tx.approvedAt.toLocalDate())
+        val sameDay = repo.findSameDayNotifications(tx.issuer, tx.mask, tx.amount, tx.kind, tx.approvedAt.toLocalDate())
         if (sameDay.any { channelOf(it.sourcePackage) != channel }) return IngestResult.DUPLICATE
 
         val originalId = if (tx.kind == TxKind.CANCEL) {

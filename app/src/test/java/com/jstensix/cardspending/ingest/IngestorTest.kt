@@ -154,7 +154,6 @@ class IngestorTest {
         assertTrue(repo.snapshot().third.isEmpty())
     }
 
-    // Alerts stored under the old rule are re-checked: parsed ones become payments, junk is removed.
     /** The same 9,900원 payment as [HANA_BODY], as the Hana SMS. */
     private fun hanaSms(at: LocalDateTime = posted) = NotificationMessage(
         "com.samsung.android.messaging", HANA_SMS_TITLE, "[Web발신]\n하나0*8*승인 김*수님 거궁찬판교점 9,900원 11/18 정상처리", at,
@@ -192,6 +191,30 @@ class IngestorTest {
         assertTrue(repo.observeUnparsed().first().isEmpty())
     }
 
+    // A payment the user deleted stays deleted when the same payment's SMS (or push) shows up afterwards.
+    @Test fun deletedPush_smsDoesNotBringItBack() = runTest {
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(hana()))
+        repo.deleteTransaction(monthTxs().single().id)
+        assertEquals(IngestResult.DUPLICATE, ingestor.ingest(hanaSms()))
+        assertTrue(monthTxs().isEmpty())
+    }
+
+    // Auto-pay SMS can arrive in a batch: different payments of the same amount in the same minute are all kept.
+    @Test fun twoSmsSameMinuteDifferentMerchant_bothInserted() = runTest {
+        val at = LocalDateTime.of(2026, 11, 18, 6, 0)
+        fun sms(merchant: String) = NotificationMessage(
+            "com.samsung.android.messaging", HANA_SMS_TITLE, "하나0*8*승인 김*수님 $merchant 9,900원 11/18 정상처리", at,
+        )
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(sms("넷플릭스")))
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(sms("유튜브")))
+        assertEquals(2, monthTxs().size)
+    }
+
+    @Test fun sameSmsReposted_duplicate() = runTest {
+        assertEquals(listOf(IngestResult.INSERTED, IngestResult.DUPLICATE), ingestor.ingestAll(listOf(hanaSms(), hanaSms())))
+    }
+
+    // Alerts stored under the old rule are re-checked: parsed ones become payments, junk is removed.
     @Test fun reparsePending_deletesNoLongerCandidates() = runTest {
         fun row(hash: String, body: String) = UnparsedNotification(
             contentHash = hash, packageName = "com.kakao.talk", title = "롯데카드", body = body, postedAt = posted, parserVersion = 0,

@@ -49,6 +49,20 @@ interface TransactionDao {
         end: LocalDateTime,
     ): List<Transaction>
 
+    /** Notification rows of one day, soft-deleted ones included, like [findSameKey]. */
+    @Query(
+        "SELECT * FROM transactions WHERE source = 'NOTIFICATION' AND issuer = :issuer AND mask = :mask " +
+            "AND amount = :amount AND kind = :kind AND approvedAt >= :start AND approvedAt < :end",
+    )
+    suspend fun notificationsInRange(
+        issuer: Issuer,
+        mask: String,
+        amount: Long,
+        kind: TxKind,
+        start: LocalDateTime,
+        end: LocalDateTime,
+    ): List<Transaction>
+
     @Update suspend fun update(tx: Transaction)
 
     @Query("SELECT COUNT(*) FROM transactions") suspend fun count(): Int
