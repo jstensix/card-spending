@@ -5,3 +5,7 @@ internal const val LOTTE_SAMPLE =
 
 internal const val HANA_TITLE = "(결제) 9,900원"
 internal const val HANA_BODY = "거궁찬판교점 / 신용(일시불,0*8*) / 11.18 17:29 / 누적이용금액 532,231원"
+
+/** Samsung Messages wraps the sender name in Unicode isolates. */
+internal const val HANA_SMS_TITLE = "⁨하나카드⁩"
+internal const val HANA_SMS_BODY = "[Web발신]\n하나0*8*승인 김*수님 SK브로드밴드-자동납 26,950원 11/23 정상처리"

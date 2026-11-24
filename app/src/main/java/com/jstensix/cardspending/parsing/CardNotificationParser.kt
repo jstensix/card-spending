@@ -5,7 +5,7 @@ import com.jstensix.cardspending.rules.isValidLast4
 import com.jstensix.cardspending.rules.maskOf
 
 /** Bump whenever a parser changes, so stored unrecognized notifications get parsed again. */
-const val PARSER_VERSION = 2
+const val PARSER_VERSION = 3
 
 sealed interface ParseOutcome {
     data class Parsed(val tx: ParsedTransaction) : ParseOutcome
@@ -38,6 +38,7 @@ object CardNotificationParser {
     fun parse(message: NotificationMessage, cards: List<Card>): ParseOutcome {
         LotteParser.parse(message)?.let { return ParseOutcome.Parsed(it) }
         HanaParser.parse(message)?.let { return ParseOutcome.Parsed(it) }
+        HanaSmsParser.parse(message)?.let { return ParseOutcome.Parsed(it) }
         return if (looksLikeCardNotification(message, cards)) ParseOutcome.Candidate else ParseOutcome.Ignored
     }
 

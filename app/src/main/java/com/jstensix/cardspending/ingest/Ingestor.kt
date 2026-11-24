@@ -2,6 +2,7 @@ package com.jstensix.cardspending.ingest
 
 import com.jstensix.cardspending.data.SpendingRepository
 import com.jstensix.cardspending.model.Transaction
+import com.jstensix.cardspending.model.channelOf
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
 import com.jstensix.cardspending.model.UnparsedNotification
@@ -85,6 +86,12 @@ class Ingestor(
     private suspend fun store(tx: ParsedTransaction, sourcePackage: String): IngestResult {
         val sameKey = repo.findSameKey(tx.issuer, tx.mask, tx.amount, tx.kind, tx.approvedAt)
         if (sameKey.any { isSameTransaction(it, tx) }) return IngestResult.DUPLICATE
+
+        // One payment can arrive both as a push and as an SMS. The SMS has no time of its own, so across
+        // channels the same card, amount and day is the same payment; within a channel the exact time decides.
+        val channel = channelOf(sourcePackage)
+        val sameDay = repo.findSameDay(TxSource.NOTIFICATION, tx.issuer, tx.mask, tx.amount, tx.kind, tx.approvedAt.toLocalDate())
+        if (sameDay.any { channelOf(it.sourcePackage) != channel }) return IngestResult.DUPLICATE
 
         val originalId = if (tx.kind == TxKind.CANCEL) {
             findOriginal(tx, repo.approvalsForCancel(tx.issuer, tx.mask, tx.approvedAt, tx.amount))?.id

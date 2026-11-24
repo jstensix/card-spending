@@ -11,6 +11,8 @@ import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
 import com.jstensix.cardspending.model.UnparsedNotification
 import com.jstensix.cardspending.parsing.HANA_BODY
+import com.jstensix.cardspending.parsing.HANA_SMS_BODY
+import com.jstensix.cardspending.parsing.HANA_SMS_TITLE
 import com.jstensix.cardspending.parsing.HANA_TITLE
 import com.jstensix.cardspending.parsing.LOTTE_SAMPLE
 import com.jstensix.cardspending.parsing.NotificationMessage
@@ -153,6 +155,43 @@ class IngestorTest {
     }
 
     // Alerts stored under the old rule are re-checked: parsed ones become payments, junk is removed.
+    /** The same 9,900원 payment as [HANA_BODY], as the Hana SMS. */
+    private fun hanaSms(at: LocalDateTime = posted) = NotificationMessage(
+        "com.samsung.android.messaging", HANA_SMS_TITLE, "[Web발신]\n하나0*8*승인 김*수님 거궁찬판교점 9,900원 11/18 정상처리", at,
+    )
+
+    @Test fun smsAfterPushSameDay_duplicate() = runTest {
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(hana()))
+        assertEquals(IngestResult.DUPLICATE, ingestor.ingest(hanaSms()))
+        assertEquals(1, monthTxs().size)
+    }
+
+    @Test fun pushAfterSmsSameDay_duplicate() = runTest {
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(hanaSms()))
+        assertEquals(IngestResult.DUPLICATE, ingestor.ingest(hana()))
+        assertEquals(1, monthTxs().size)
+    }
+
+    // Two real same-amount payments on one day each get their own SMS, received at different times.
+    @Test fun twoSmsSameDay_bothInserted() = runTest {
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(hanaSms(LocalDateTime.of(2026, 11, 18, 17, 30))))
+        assertEquals(IngestResult.INSERTED, ingestor.ingest(hanaSms(LocalDateTime.of(2026, 11, 18, 18, 10))))
+        assertEquals(2, monthTxs().size)
+    }
+
+    // The SMS that sat in 알림함 before this parser existed is registered on the next app start.
+    @Test fun reparse_convertsStoredSms() = runTest {
+        repo.insertUnparsedIfNew(
+            UnparsedNotification(
+                contentHash = "sms", packageName = "com.samsung.android.messaging", title = HANA_SMS_TITLE,
+                body = HANA_SMS_BODY, postedAt = LocalDateTime.of(2026, 11, 24, 11, 30), parserVersion = 2,
+            ),
+        )
+        assertEquals(1, ingestor.reparsePending())
+        assertEquals(listOf(26950L), monthTxs().map { it.amount })
+        assertTrue(repo.observeUnparsed().first().isEmpty())
+    }
+
     @Test fun reparsePending_deletesNoLongerCandidates() = runTest {
         fun row(hash: String, body: String) = UnparsedNotification(
             contentHash = hash, packageName = "com.kakao.talk", title = "롯데카드", body = body, postedAt = posted, parserVersion = 0,
