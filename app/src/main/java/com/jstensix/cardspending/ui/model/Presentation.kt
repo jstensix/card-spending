@@ -3,6 +3,7 @@ package com.jstensix.cardspending.ui.model
 import com.jstensix.cardspending.model.Transaction
 import com.jstensix.cardspending.model.TxKind
 import com.jstensix.cardspending.model.TxSource
+import com.jstensix.cardspending.model.channelOf
 import com.jstensix.cardspending.rules.TierProgress
 import com.jstensix.cardspending.ui.formatWon
 import java.time.DayOfWeek
@@ -80,7 +81,7 @@ fun txMeta(tx: Transaction): String = buildString {
     append(tx.approvedAt.format(TIME))
     append(if (tx.installment) " · 할부" else " · 일시불")
     if (tx.kind == TxKind.CANCEL) append(" · 취소")
-    append(if (tx.source == TxSource.NOTIFICATION) " · 자동" else " · 직접 입력")
+    append(if (tx.source == TxSource.NOTIFICATION) " · 자동(${channelOf(tx.sourcePackage).name})" else " · 직접 입력")
 }
 
 data class DayGroup<T>(val date: LocalDate, val label: String, val items: List<T>)

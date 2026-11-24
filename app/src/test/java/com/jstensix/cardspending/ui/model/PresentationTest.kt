@@ -79,9 +79,18 @@ class PresentationTest {
         val tx = Transaction(
             issuer = Issuer.LOTTE, kind = TxKind.APPROVAL, amount = 5600, merchant = "카페", mask = "7*1*",
             installment = false, approvedAt = LocalDateTime.of(2026, 11, 18, 14, 32), source = TxSource.NOTIFICATION,
-            createdAt = LocalDateTime.of(2026, 11, 18, 14, 32),
+            sourcePackage = "com.hanacard.app", createdAt = LocalDateTime.of(2026, 11, 18, 14, 32),
         )
-        assertEquals("14:32 · 일시불 · 자동", txMeta(tx))
+        assertEquals("14:32 · 일시불 · 자동(PUSH)", txMeta(tx))
+    }
+
+    @Test fun txMeta_smsApproval() {
+        val tx = Transaction(
+            issuer = Issuer.HANA, kind = TxKind.APPROVAL, amount = 26950, merchant = "SK브로드밴드-자동납", mask = "0*8*",
+            installment = false, approvedAt = LocalDateTime.of(2026, 11, 18, 14, 32), source = TxSource.NOTIFICATION,
+            sourcePackage = "com.samsung.android.messaging", createdAt = LocalDateTime.of(2026, 11, 18, 14, 32),
+        )
+        assertEquals("14:32 · 일시불 · 자동(SMS)", txMeta(tx))
     }
 
     @Test fun txMeta_manualInstallmentCancel() {
